@@ -37,14 +37,14 @@ const cancelEditBtn = document.getElementById('cancel-edit');
 renderMedia();
 updateStats();
 
-// --- TABS & VIEWS ---
+// --- TABS ---
 window.switchTab = function(tabName) {
     libraryView.classList.add('hidden');
     settingsView.classList.add('hidden');
     statsView.classList.add('hidden');
     
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active'); // Highlight clicked button
+    event.target.classList.add('active'); 
 
     if(tabName === 'library') libraryView.classList.remove('hidden');
     if(tabName === 'settings') settingsView.classList.remove('hidden');
@@ -54,13 +54,12 @@ window.switchTab = function(tabName) {
     }
 }
 
-// --- STATS LOGIC ---
+// --- STATS ---
 function updateStats() {
     document.getElementById('stat-total').innerText = mediaList.length;
     document.getElementById('stat-movies').innerText = mediaList.filter(i => i.type === 'Movie').length;
     document.getElementById('stat-shows').innerText = mediaList.filter(i => i.type === 'TV Show').length;
     
-    // Rough estimate: 2h per movie, 45m per episode
     let minutes = 0;
     mediaList.forEach(item => {
         if(item.type === 'Movie') minutes += 120;
@@ -69,7 +68,7 @@ function updateStats() {
     document.getElementById('stat-mins').innerText = minutes;
 }
 
-// --- FORM HANDLING (ADD & EDIT) ---
+// --- FORM HANDLING ---
 window.toggleTVFields = function() {
     const type = document.getElementById('type').value;
     if(type === 'TV Show') tvFields.classList.remove('hidden');
@@ -89,7 +88,6 @@ form.addEventListener('submit', async (e) => {
     const season = document.getElementById('season').value || 1;
     const episode = document.getElementById('episode').value || 1;
 
-    // Check if updating existing item
     if(editId) {
         const index = mediaList.findIndex(i => i.id == editId);
         if(index > -1) {
@@ -100,7 +98,6 @@ form.addEventListener('submit', async (e) => {
         return;
     }
 
-    // New Item
     let posterUrl = 'https://via.placeholder.com/300x450?text=No+Poster'; 
     try {
         const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(title)}&apikey=${API_KEY}`);
@@ -124,7 +121,6 @@ window.startEdit = function(id) {
     const item = mediaList.find(i => i.id === id);
     if(!item) return;
 
-    // Populate Form
     document.getElementById('edit-id').value = item.id;
     document.getElementById('title').value = item.title;
     document.getElementById('type').value = item.type;
@@ -135,12 +131,10 @@ window.startEdit = function(id) {
     document.getElementById('season').value = item.season || 1;
     document.getElementById('episode').value = item.episode || 1;
 
-    // UI Changes
     toggleTVFields();
     submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Item';
     cancelEditBtn.classList.remove('hidden');
     
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -153,17 +147,13 @@ window.cancelEditMode = function() {
 }
 
 // --- SEARCH & FILTER ---
-window.handleSearch = function() {
-    renderMedia();
-}
+window.handleSearch = function() { renderMedia(); }
 
 window.filterMovies = function(status) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    // Find button with matching text or explicit match
     const buttons = Array.from(document.querySelectorAll('.filter-btn'));
     const btn = buttons.find(b => b.textContent.toLowerCase().replace(' ','') === status || (status === 'all' && b.textContent === 'All'));
     if(btn) btn.classList.add('active');
-    
     renderMedia();
 }
 
@@ -175,22 +165,15 @@ function saveAndRender() {
 
 function renderMedia() {
     listContainer.innerHTML = '';
-    
-    // Get Active Filter
     const activeBtn = document.querySelector('.filter-btn.active');
     const filter = activeBtn ? activeBtn.textContent.toLowerCase().replace(' ', '') : 'all';
-    
-    // Get Search Query
     const search = document.getElementById('search-bar').value.toLowerCase();
-    
-    // Get Hide Seen Toggle
     const hideSeen = document.getElementById('hide-seen-toggle').checked;
 
     const filteredList = mediaList.filter(item => {
         const matchesFilter = (filter === 'all') || (item.status === filter);
         const matchesSearch = item.title.toLowerCase().includes(search);
         const matchesHideSeen = hideSeen ? item.status !== 'seen' : true;
-        
         return matchesFilter && matchesSearch && matchesHideSeen;
     });
 
@@ -198,10 +181,12 @@ function renderMedia() {
         const card = document.createElement('div');
         card.className = 'card';
         card.draggable = true;
-        // Drag Events
+        
+        // --- DRAG EVENTS ---
         card.addEventListener('dragstart', (e) => dragStart(e, index));
         card.addEventListener('dragover', (e) => dragOver(e));
         card.addEventListener('drop', (e) => drop(e, index));
+        card.addEventListener('dragend', (e) => dragEnd(e)); // New Handler
 
         let colorClass = '';
         if(item.status === 'towatch') colorClass = 'select-towatch';
@@ -234,16 +219,12 @@ function renderMedia() {
 
         card.innerHTML = `
             <div class="drag-handle"><i class="fas fa-grip-lines"></i></div>
-            
             <div class="card-type-badge">${item.type}</div>
-            
             <div class="card-actions">
                 <button class="action-btn" onclick="startEdit(${item.id})"><i class="fas fa-pencil-alt"></i></button>
                 <button class="action-btn delete-btn" onclick="deleteItem(${item.id})"><i class="fas fa-trash"></i></button>
             </div>
-
             <img src="${item.poster}" class="card-poster" alt="${item.title}">
-            
             <div class="card-meta">
                 <select class="card-status-select ${colorClass}" onchange="updateStatus(${item.id}, this.value)">
                     <option value="towatch" ${isToWatch}>To Watch</option>
@@ -251,7 +232,6 @@ function renderMedia() {
                     <option value="seen" ${isSeen}>Seen</option>
                 </select>
             </div>
-            
             <h3>${item.title}</h3>
             ${tvControls}
             ${item.rating ? `<div class="rating-display"><i class="fas fa-star"></i> ${item.rating}/10</div>` : ''}
@@ -262,25 +242,32 @@ function renderMedia() {
     });
 }
 
-// --- DRAG AND DROP ---
+// --- DRAG LOGIC ---
 let draggedItemIndex = null;
 
 function dragStart(e, index) {
     draggedItemIndex = index;
-    e.target.classList.add('dragging');
+    // Delay adding the class so the ghost image is taken BEFORE we pop/rotate the card
+    setTimeout(() => {
+        e.target.classList.add('dragging');
+    }, 0);
+}
+
+function dragEnd(e) {
+    // CRITICAL FIX: Ensure visibility is restored when drag ends, 
+    // regardless of whether it was dropped or not.
+    e.target.classList.remove('dragging');
 }
 
 function dragOver(e) {
-    e.preventDefault(); // Necessary to allow dropping
+    e.preventDefault(); 
 }
 
 function drop(e, dropIndex) {
     e.preventDefault();
     const draggedItem = mediaList[draggedItemIndex];
     
-    // Remove from old position
     mediaList.splice(draggedItemIndex, 1);
-    // Insert at new position
     mediaList.splice(dropIndex, 0, draggedItem);
     
     saveAndRender();
