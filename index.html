@@ -33,23 +33,29 @@
                     
                     <div class="form-row">
                         <input type="text" id="title" placeholder="Enter Title..." required autocomplete="off">
-                        <select id="type" onchange="toggleTVFields()">
-                            <option value="Movie">Movie</option>
-                            <option value="TV Show">TV Show</option>
-                        </select>
+                        <div class="select-wrapper">
+                            <select id="type" onchange="toggleTVFields()">
+                                <option value="Movie">Movie</option>
+                                <option value="TV Show">TV Show</option>
+                            </select>
+                            <i class="fas fa-chevron-down select-icon"></i>
+                        </div>
                     </div>
 
                     <div id="tv-fields" class="form-row hidden">
-                        <input type="number" id="season" placeholder="Season" min="1">
-                        <input type="number" id="episode" placeholder="Episode" min="1">
+                        <input type="number" id="season" placeholder="Current Season" min="1">
+                        <input type="number" id="episode" placeholder="Current Ep" min="1">
                     </div>
 
                     <div class="form-row">
-                        <select id="status">
-                            <option value="towatch">To Watch</option>
-                            <option value="watching">Watching</option>
-                            <option value="seen">Seen</option>
-                        </select>
+                        <div class="select-wrapper">
+                            <select id="status">
+                                <option value="towatch">To Watch</option>
+                                <option value="watching">Watching</option>
+                                <option value="seen">Seen</option>
+                            </select>
+                            <i class="fas fa-chevron-down select-icon"></i>
+                        </div>
                         <input type="number" id="rating" min="1" max="10" placeholder="Score /10">
                         <input type="date" id="date-watched">
                     </div>
@@ -170,6 +176,18 @@
             </div>
         </div>
     </main>
+
+    <div id="episode-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Show Title</h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body" class="modal-body">
+                <div class="loader"></div>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
