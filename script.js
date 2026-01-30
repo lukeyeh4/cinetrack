@@ -65,12 +65,10 @@ function updateStats() {
     let minutes = 0;
     mediaList.forEach(item => {
         if(item.type === 'Movie') {
-            // Assume 120 mins per movie (or fetch runtime if we were advanced)
             minutes += 120;
         } else if(item.type === 'TV Show') {
-            // If we are tracking episodes, count watched ones. Else use manual field.
             const eps = item.watchedEpisodes ? item.watchedEpisodes.length : (parseInt(item.episode || 1));
-            minutes += (eps * 45); // Avg 45 mins per ep
+            minutes += (eps * 45); 
         }
     });
     document.getElementById('stat-mins').innerText = minutes.toLocaleString();
@@ -117,7 +115,7 @@ form.addEventListener('submit', async (e) => {
         id: Date.now(),
         title, type, status, rating, poster: posterUrl,
         dateWatched, notes, season, episode,
-        watchedEpisodes: [] // Initialize empty array for TV
+        watchedEpisodes: [] 
     };
 
     mediaList.push(newItem);
@@ -191,7 +189,6 @@ function renderMedia() {
         card.className = 'card';
         card.draggable = true;
         
-        // --- DRAG EVENTS ---
         card.addEventListener('dragstart', (e) => dragStart(e, index));
         card.addEventListener('dragover', (e) => dragOver(e));
         card.addEventListener('drop', (e) => drop(e, index));
@@ -206,14 +203,14 @@ function renderMedia() {
         const isWatching = item.status === 'watching' ? 'selected' : '';
         const isSeen = item.status === 'seen' ? 'selected' : '';
 
-        // TV CONTROL BUTTON
         let tvControls = '';
         if(item.type === 'TV Show') {
             const watchedCount = item.watchedEpisodes ? item.watchedEpisodes.length : 0;
+            const total = item.totalEpisodes || '?';
             tvControls = `
                 <div class="tv-controls-container">
                     <button class="glass-btn primary-glass" style="width:100%; font-size:0.8rem;" onclick="openEpisodeTracker(${item.id})">
-                        <i class="fas fa-list-ul"></i> Episodes (${watchedCount})
+                        <i class="fas fa-list-ul"></i> Episodes (${watchedCount}/${total})
                     </button>
                 </div>
             `;
@@ -246,11 +243,7 @@ function renderMedia() {
 
 // --- DRAG LOGIC ---
 let draggedItemIndex = null;
-
-function dragStart(e, index) {
-    draggedItemIndex = index;
-    setTimeout(() => { e.target.classList.add('dragging'); }, 0);
-}
+function dragStart(e, index) { draggedItemIndex = index; setTimeout(() => { e.target.classList.add('dragging'); }, 0); }
 function dragEnd(e) { e.target.classList.remove('dragging'); }
 function dragOver(e) { e.preventDefault(); }
 function drop(e, dropIndex) {
@@ -273,7 +266,10 @@ window.updateStatus = function(id, newStatus) {
     if(item) { item.status = newStatus; saveAndRender(); }
 }
 
-// --- EPISODE TRACKER (OPTIMIZED) ---
+// ==========================================
+// ===  EPISODE TRACKER (COLLAPSIBLE & SEARCH) ===
+// ==========================================
+
 window.openEpisodeTracker = async function(id) {
     const item = mediaList.find(i => i.id === id);
     if(!item) return;
@@ -288,7 +284,7 @@ window.openEpisodeTracker = async function(id) {
     let episodeData = sessionStorage.getItem(sessionKey);
 
     if (episodeData) {
-        renderEpisodeList(item, JSON.parse(episodeData));
+        setupModalLayout(item, JSON.parse(episodeData));
     } else {
         await fetchAndCacheEpisodes(item, sessionKey);
     }
@@ -306,6 +302,7 @@ async function fetchAndCacheEpisodes(item, sessionKey) {
 
         const totalSeasons = parseInt(data.totalSeasons);
         let allSeasons = {};
+        let grandTotal = 0;
 
         for(let s = 1; s <= totalSeasons; s++) {
             modalBody.innerHTML = `<div class="loader"></div><p style="text-align:center">Syncing Season ${s}/${totalSeasons}...</p>`;
@@ -317,34 +314,66 @@ async function fetchAndCacheEpisodes(item, sessionKey) {
                     ep: ep.Episode,
                     title: ep.Title
                 }));
+                grandTotal += seasonData.Episodes.length;
             }
         }
+        
+        item.totalEpisodes = grandTotal; // Save total count for progress logic
+        saveAndRender();
 
         sessionStorage.setItem(sessionKey, JSON.stringify(allSeasons));
-        renderEpisodeList(item, allSeasons);
+        setupModalLayout(item, allSeasons);
     } catch (err) {
         console.error(err);
         modalBody.innerHTML = '<p>Error connecting to database.</p>';
     }
 }
 
-function renderEpisodeList(item, seasonData) {
+function setupModalLayout(item, seasonData) {
     modalBody.innerHTML = '';
+    
+    // 1. Search Bar
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.id = 'episode-search-bar';
+    searchInput.placeholder = 'Search for episode title...';
+    searchInput.onkeyup = (e) => filterEpisodes(e.target.value);
+    modalBody.appendChild(searchInput);
+
+    // 2. Container for episodes
+    const container = document.createElement('div');
+    container.id = 'episodes-container';
+    modalBody.appendChild(container);
+
+    renderSeasonList(item, seasonData, container);
+}
+
+function renderSeasonList(item, seasonData, container) {
     if (!item.watchedEpisodes) item.watchedEpisodes = []; 
 
     Object.keys(seasonData).forEach(seasonNum => {
         const seasonDiv = document.createElement('div');
         seasonDiv.className = 'season-group';
+        seasonDiv.id = `season-group-${seasonNum}`;
         
+        // Header (Click to collapse)
         const headerHtml = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem;">
-                <span class="season-title" style="border:none; margin:0;">Season ${seasonNum}</span>
-                <button class="glass-btn" style="font-size:0.7rem; padding:4px 8px;" onclick="markSeasonWatched(${item.id}, ${seasonNum}, ${seasonData[seasonNum].length})">
+            <div class="season-header" onclick="toggleSeason(${seasonNum})">
+                <span class="season-title-text">
+                    <i id="chevron-${seasonNum}" class="fas fa-chevron-down season-chevron"></i> 
+                    Season ${seasonNum}
+                </span>
+                <button class="glass-btn" style="font-size:0.7rem; padding:4px 8px;" onclick="markSeasonWatched(event, ${item.id}, ${seasonNum}, ${seasonData[seasonNum].length})">
                     <i class="fas fa-check-double"></i> All
                 </button>
             </div>
         `;
         seasonDiv.innerHTML = headerHtml;
+
+        // Content (Hidden/Shown)
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'season-content';
+        contentDiv.id = `season-content-${seasonNum}`;
 
         seasonData[seasonNum].forEach(ep => {
             const epId = `${seasonNum}-${ep.ep}`;
@@ -352,18 +381,51 @@ function renderEpisodeList(item, seasonData) {
 
             const epRow = document.createElement('div');
             epRow.className = `episode-item ${isWatched ? 'watched' : ''}`;
+            epRow.id = `ep-row-${epId}`; // ID for quick updates
             epRow.onclick = () => toggleEpisode(item.id, epId);
             
             epRow.innerHTML = `
-                <div class="ep-checkbox"></div>
+                <div class="ep-checkbox" id="check-${epId}"></div>
                 <div class="ep-number">E${ep.ep}</div>
                 <span class="ep-title">${ep.title}</span>
             `;
-            seasonDiv.appendChild(epRow);
+            contentDiv.appendChild(epRow);
         });
 
-        modalBody.appendChild(seasonDiv);
+        seasonDiv.appendChild(contentDiv);
+        container.appendChild(seasonDiv);
     });
+}
+
+// Toggle Season Visibility
+window.toggleSeason = function(seasonNum) {
+    const content = document.getElementById(`season-content-${seasonNum}`);
+    const chevron = document.getElementById(`chevron-${seasonNum}`);
+    if(content && chevron) {
+        content.classList.toggle('hidden');
+        chevron.classList.toggle('rotated');
+    }
+}
+
+// Search Filter
+window.filterEpisodes = function(query) {
+    const text = query.toLowerCase();
+    const rows = document.querySelectorAll('.episode-item');
+    
+    rows.forEach(row => {
+        const title = row.querySelector('.ep-title').innerText.toLowerCase();
+        if(title.includes(text)) {
+            row.style.display = 'flex';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Optional: If searching, expand all seasons so results are visible
+    if(text.length > 0) {
+        document.querySelectorAll('.season-content').forEach(d => d.classList.remove('hidden'));
+        document.querySelectorAll('.season-chevron').forEach(c => c.classList.remove('rotated'));
+    }
 }
 
 window.toggleEpisode = function(itemId, epId) {
@@ -375,15 +437,19 @@ window.toggleEpisode = function(itemId, epId) {
     if (index > -1) item.watchedEpisodes.splice(index, 1);
     else item.watchedEpisodes.push(epId);
 
+    checkProgress(item);
     saveAndRender();
     
-    // Re-render
-    const sessionKey = `cineTrack_titles_${item.title}`;
-    const cachedData = JSON.parse(sessionStorage.getItem(sessionKey));
-    if(cachedData) renderEpisodeList(item, cachedData);
+    // OPTIMIZED: Update only the specific row instead of re-rendering whole list
+    const row = document.getElementById(`ep-row-${epId}`);
+    if(row) {
+        row.classList.toggle('watched');
+    }
 }
 
-window.markSeasonWatched = function(itemId, seasonNum, totalEpsInSeason) {
+window.markSeasonWatched = function(event, itemId, seasonNum, totalEpsInSeason) {
+    event.stopPropagation(); // Prevent collapsing the header when clicking the button
+
     const item = mediaList.find(i => i.id === itemId);
     if(!item) return;
     if(!item.watchedEpisodes) item.watchedEpisodes = [];
@@ -394,11 +460,31 @@ window.markSeasonWatched = function(itemId, seasonNum, totalEpsInSeason) {
             item.watchedEpisodes.push(epId);
         }
     }
+
+    checkProgress(item);
     saveAndRender();
     
+    // Re-render specifically this season to show checks
+    // (Simpler to just re-render UI here since it affects many rows)
     const sessionKey = `cineTrack_titles_${item.title}`;
     const cachedData = JSON.parse(sessionStorage.getItem(sessionKey));
-    if(cachedData) renderEpisodeList(item, cachedData);
+    if(cachedData) setupModalLayout(item, cachedData); 
+}
+
+// Status Logic
+function checkProgress(item) {
+    const watched = item.watchedEpisodes.length;
+    const total = item.totalEpisodes || 0;
+
+    if (watched > 0 && item.status === 'towatch') {
+        item.status = 'watching';
+    }
+    if (total > 0 && watched >= total) {
+        item.status = 'seen';
+    }
+    if (item.status === 'seen' && watched < total) {
+        item.status = 'watching';
+    }
 }
 
 window.closeModal = function() {
