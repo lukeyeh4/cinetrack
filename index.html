@@ -27,10 +27,15 @@
             <form id="movie-form">
                 <div class="form-row">
                     <input type="text" id="title" placeholder="Enter Movie or Show Title..." required autocomplete="off">
-                    <select id="type">
+                    <select id="type" onchange="toggleTVFields()">
                         <option value="Movie">Movie</option>
                         <option value="TV Show">TV Show</option>
                     </select>
+                </div>
+
+                <div id="tv-fields" class="form-row hidden">
+                    <input type="number" id="season" placeholder="Season" min="1">
+                    <input type="number" id="episode" placeholder="Episode" min="1">
                 </div>
 
                 <div class="form-row">
