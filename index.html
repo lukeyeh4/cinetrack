@@ -64,7 +64,9 @@
             </section>
 
             <div class="controls-bar">
-                <input type="text" id="search-bar" placeholder="Search library..." onkeyup="handleSearch()">
+                <div class="search-wrapper">
+                    <input type="text" id="search-bar" placeholder="Search library..." onkeyup="handleSearch()">
+                </div>
                 
                 <div class="filter-group">
                     <button class="glass-btn filter-btn active" onclick="filterMovies('all')">All</button>
@@ -73,12 +75,19 @@
                     <button class="glass-btn filter-btn" onclick="filterMovies('seen')">Seen</button>
                 </div>
 
-                <div class="toggle-wrapper">
-                    <span class="toggle-label">Hide Watched</span>
-                    <label class="switch">
-                        <input type="checkbox" id="hide-seen-toggle" onchange="renderMedia()">
-                        <span class="slider round"></span>
-                    </label>
+                <div class="right-controls">
+                    <div class="view-toggles">
+                        <button class="icon-btn active" id="view-grid" onclick="toggleViewMode('grid')"><i class="fas fa-th-large"></i></button>
+                        <button class="icon-btn" id="view-list" onclick="toggleViewMode('list')"><i class="fas fa-list"></i></button>
+                    </div>
+
+                    <div class="toggle-wrapper">
+                        <span class="toggle-label">Hide Seen</span>
+                        <label class="switch">
+                            <input type="checkbox" id="hide-seen-toggle" onchange="renderMedia()">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -135,6 +144,23 @@
                         <i class="fas fa-upload"></i> Upload Image
                     </button>
                     <input type="file" id="bg-upload" accept="image/*" hidden onchange="uploadBackground(this)">
+                </div>
+
+                <h2 style="margin-top: 2rem;"><i class="fas fa-database"></i> Data & Storage</h2>
+
+                <div class="setting-item">
+                    <label>Backup Library</label>
+                    <button class="glass-btn primary-glass" onclick="downloadBackup()">
+                        <i class="fas fa-download"></i> Save to File
+                    </button>
+                </div>
+            
+                <div class="setting-item">
+                    <label>Restore Library</label>
+                    <button class="glass-btn" onclick="document.getElementById('restore-upload').click()">
+                        <i class="fas fa-file-import"></i> Load from File
+                    </button>
+                    <input type="file" id="restore-upload" accept=".json" hidden onchange="restoreBackup(this)">
                 </div>
                 
                 <div class="setting-item">
