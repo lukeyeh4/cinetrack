@@ -1,5 +1,6 @@
 const API_KEY = '78deb1e2'; 
 
+// Load main data
 let mediaList = JSON.parse(localStorage.getItem('cineTrackData')) || [];
 
 // --- DOM ELEMENTS ---
@@ -12,7 +13,13 @@ const statsView = document.getElementById('stats-view');
 const submitBtn = document.getElementById('submit-btn');
 const cancelEditBtn = document.getElementById('cancel-edit');
 
-// --- TABS ---
+// Modal Elements
+const modal = document.getElementById('episode-modal');
+const modalBody = document.getElementById('modal-body');
+const modalTitle = document.getElementById('modal-title');
+let currentOpenId = null;
+
+// --- TABS & NAV ---
 window.switchTab = function(tabName) {
     libraryView.classList.add('hidden');
     settingsView.classList.add('hidden');
@@ -35,7 +42,6 @@ window.toggleViewMode = function(mode) {
     const listBtn = document.getElementById('view-list');
     const container = document.getElementById('movie-list');
 
-    // Safety check in case HTML isn't updated
     if(!gridBtn || !listBtn) return;
 
     if(mode === 'list') {
@@ -50,7 +56,7 @@ window.toggleViewMode = function(mode) {
     localStorage.setItem('cineTrackViewMode', mode);
 }
 
-// --- STATS ---
+// --- STATS LOGIC ---
 function updateStats() {
     document.getElementById('stat-total').innerText = mediaList.length;
     document.getElementById('stat-movies').innerText = mediaList.filter(i => i.type === 'Movie').length;
@@ -58,10 +64,16 @@ function updateStats() {
     
     let minutes = 0;
     mediaList.forEach(item => {
-        if(item.type === 'Movie') minutes += 120;
-        if(item.type === 'TV Show') minutes += (parseInt(item.episode || 1) * 45);
+        if(item.type === 'Movie') {
+            // Assume 120 mins per movie (or fetch runtime if we were advanced)
+            minutes += 120;
+        } else if(item.type === 'TV Show') {
+            // If we are tracking episodes, count watched ones. Else use manual field.
+            const eps = item.watchedEpisodes ? item.watchedEpisodes.length : (parseInt(item.episode || 1));
+            minutes += (eps * 45); // Avg 45 mins per ep
+        }
     });
-    document.getElementById('stat-mins').innerText = minutes;
+    document.getElementById('stat-mins').innerText = minutes.toLocaleString();
 }
 
 // --- FORM HANDLING ---
@@ -104,7 +116,8 @@ form.addEventListener('submit', async (e) => {
     const newItem = {
         id: Date.now(),
         title, type, status, rating, poster: posterUrl,
-        dateWatched, notes, season, episode
+        dateWatched, notes, season, episode,
+        watchedEpisodes: [] // Initialize empty array for TV
     };
 
     mediaList.push(newItem);
@@ -193,22 +206,15 @@ function renderMedia() {
         const isWatching = item.status === 'watching' ? 'selected' : '';
         const isSeen = item.status === 'seen' ? 'selected' : '';
 
+        // TV CONTROL BUTTON
         let tvControls = '';
         if(item.type === 'TV Show') {
+            const watchedCount = item.watchedEpisodes ? item.watchedEpisodes.length : 0;
             tvControls = `
                 <div class="tv-controls-container">
-                    <div class="control-row">
-                        <span>S</span>
-                        <button class="ep-btn" onclick="updateTvProgress(${item.id}, 'season', -1)">-</button>
-                        <span>${item.season || 1}</span>
-                        <button class="ep-btn" onclick="updateTvProgress(${item.id}, 'season', 1)">+</button>
-                    </div>
-                    <div class="control-row">
-                        <span>Ep</span>
-                        <button class="ep-btn" onclick="updateTvProgress(${item.id}, 'episode', -1)">-</button>
-                        <span>${item.episode || 1}</span>
-                        <button class="ep-btn" onclick="updateTvProgress(${item.id}, 'episode', 1)">+</button>
-                    </div>
+                    <button class="glass-btn primary-glass" style="width:100%; font-size:0.8rem;" onclick="openEpisodeTracker(${item.id})">
+                        <i class="fas fa-list-ul"></i> Episodes (${watchedCount})
+                    </button>
                 </div>
             `;
         }
@@ -243,19 +249,10 @@ let draggedItemIndex = null;
 
 function dragStart(e, index) {
     draggedItemIndex = index;
-    setTimeout(() => {
-        e.target.classList.add('dragging');
-    }, 0);
+    setTimeout(() => { e.target.classList.add('dragging'); }, 0);
 }
-
-function dragEnd(e) {
-    e.target.classList.remove('dragging');
-}
-
-function dragOver(e) {
-    e.preventDefault(); 
-}
-
+function dragEnd(e) { e.target.classList.remove('dragging'); }
+function dragOver(e) { e.preventDefault(); }
 function drop(e, dropIndex) {
     e.preventDefault();
     const draggedItem = mediaList[draggedItemIndex];
@@ -275,16 +272,141 @@ window.updateStatus = function(id, newStatus) {
     const item = mediaList.find(i => i.id === id);
     if(item) { item.status = newStatus; saveAndRender(); }
 }
-window.updateTvProgress = function(id, field, change) {
+
+// --- EPISODE TRACKER (OPTIMIZED) ---
+window.openEpisodeTracker = async function(id) {
     const item = mediaList.find(i => i.id === id);
-    if(item) {
-        let val = parseInt(item[field]) || 1;
-        item[field] = Math.max(1, val + change);
-        saveAndRender();
+    if(!item) return;
+
+    currentOpenId = id;
+    modal.classList.remove('hidden');
+    modalTitle.innerText = item.title;
+    modalBody.innerHTML = '<div class="loader"></div><p style="text-align:center">Loading episode guide...</p>';
+
+    // Check Session Storage
+    const sessionKey = `cineTrack_titles_${item.title}`;
+    let episodeData = sessionStorage.getItem(sessionKey);
+
+    if (episodeData) {
+        renderEpisodeList(item, JSON.parse(episodeData));
+    } else {
+        await fetchAndCacheEpisodes(item, sessionKey);
     }
 }
 
-// --- SETTINGS ---
+async function fetchAndCacheEpisodes(item, sessionKey) {
+    try {
+        const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(item.title)}&apikey=${API_KEY}`);
+        const data = await res.json();
+        
+        if(!data.totalSeasons) {
+            modalBody.innerHTML = '<p>No episode data found.</p>';
+            return;
+        }
+
+        const totalSeasons = parseInt(data.totalSeasons);
+        let allSeasons = {};
+
+        for(let s = 1; s <= totalSeasons; s++) {
+            modalBody.innerHTML = `<div class="loader"></div><p style="text-align:center">Syncing Season ${s}/${totalSeasons}...</p>`;
+            const seasonRes = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(item.title)}&Season=${s}&apikey=${API_KEY}`);
+            const seasonData = await seasonRes.json();
+            
+            if(seasonData.Episodes) {
+                allSeasons[s] = seasonData.Episodes.map(ep => ({
+                    ep: ep.Episode,
+                    title: ep.Title
+                }));
+            }
+        }
+
+        sessionStorage.setItem(sessionKey, JSON.stringify(allSeasons));
+        renderEpisodeList(item, allSeasons);
+    } catch (err) {
+        console.error(err);
+        modalBody.innerHTML = '<p>Error connecting to database.</p>';
+    }
+}
+
+function renderEpisodeList(item, seasonData) {
+    modalBody.innerHTML = '';
+    if (!item.watchedEpisodes) item.watchedEpisodes = []; 
+
+    Object.keys(seasonData).forEach(seasonNum => {
+        const seasonDiv = document.createElement('div');
+        seasonDiv.className = 'season-group';
+        
+        const headerHtml = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem;">
+                <span class="season-title" style="border:none; margin:0;">Season ${seasonNum}</span>
+                <button class="glass-btn" style="font-size:0.7rem; padding:4px 8px;" onclick="markSeasonWatched(${item.id}, ${seasonNum}, ${seasonData[seasonNum].length})">
+                    <i class="fas fa-check-double"></i> All
+                </button>
+            </div>
+        `;
+        seasonDiv.innerHTML = headerHtml;
+
+        seasonData[seasonNum].forEach(ep => {
+            const epId = `${seasonNum}-${ep.ep}`;
+            const isWatched = item.watchedEpisodes.includes(epId);
+
+            const epRow = document.createElement('div');
+            epRow.className = `episode-item ${isWatched ? 'watched' : ''}`;
+            epRow.onclick = () => toggleEpisode(item.id, epId);
+            
+            epRow.innerHTML = `
+                <div class="ep-checkbox"></div>
+                <div class="ep-number">E${ep.ep}</div>
+                <span class="ep-title">${ep.title}</span>
+            `;
+            seasonDiv.appendChild(epRow);
+        });
+
+        modalBody.appendChild(seasonDiv);
+    });
+}
+
+window.toggleEpisode = function(itemId, epId) {
+    const item = mediaList.find(i => i.id === itemId);
+    if(!item) return;
+    if(!item.watchedEpisodes) item.watchedEpisodes = [];
+
+    const index = item.watchedEpisodes.indexOf(epId);
+    if (index > -1) item.watchedEpisodes.splice(index, 1);
+    else item.watchedEpisodes.push(epId);
+
+    saveAndRender();
+    
+    // Re-render
+    const sessionKey = `cineTrack_titles_${item.title}`;
+    const cachedData = JSON.parse(sessionStorage.getItem(sessionKey));
+    if(cachedData) renderEpisodeList(item, cachedData);
+}
+
+window.markSeasonWatched = function(itemId, seasonNum, totalEpsInSeason) {
+    const item = mediaList.find(i => i.id === itemId);
+    if(!item) return;
+    if(!item.watchedEpisodes) item.watchedEpisodes = [];
+
+    for(let i = 1; i <= totalEpsInSeason; i++) {
+        const epId = `${seasonNum}-${i}`;
+        if(!item.watchedEpisodes.includes(epId)) {
+            item.watchedEpisodes.push(epId);
+        }
+    }
+    saveAndRender();
+    
+    const sessionKey = `cineTrack_titles_${item.title}`;
+    const cachedData = JSON.parse(sessionStorage.getItem(sessionKey));
+    if(cachedData) renderEpisodeList(item, cachedData);
+}
+
+window.closeModal = function() {
+    modal.classList.add('hidden');
+    currentOpenId = null;
+}
+
+// --- SETTINGS & INITIALIZATION ---
 window.toggleGlassMode = function(checked) {
     document.body.classList.toggle('glass-theme', checked);
     localStorage.setItem('cineTrackGlass', checked);
@@ -318,7 +440,7 @@ window.uploadBackground = function(input) {
     }
 }
 
-// --- DATA MANAGEMENT ---
+// Backup / Restore
 window.downloadBackup = function() {
     const backupData = {
         mediaList: mediaList,
@@ -351,7 +473,7 @@ window.restoreBackup = function(input) {
         try {
             const data = JSON.parse(e.target.result);
             if(!data.mediaList) { alert("Invalid backup file!"); return; }
-            if(confirm(`Restore backup from ${data.exportDate || 'unknown date'}? This will overwrite current data.`)) {
+            if(confirm(`Restore backup? This overwrites current data.`)) {
                 mediaList = data.mediaList;
                 localStorage.setItem('cineTrackData', JSON.stringify(mediaList));
                 if(data.preferences) {
@@ -365,20 +487,17 @@ window.restoreBackup = function(input) {
             }
         } catch (err) {
             console.error(err);
-            alert("Error reading file. Make sure it's a valid JSON.");
+            alert("Error reading file.");
         }
     };
     reader.readAsText(file);
     input.value = ''; 
 }
 
-// --- INITIALIZATION (Must be at the bottom) ---
-
-// 1. Load Background
+// --- INIT (RUN AT END) ---
 const savedBg = localStorage.getItem('cineTrackBg');
 if(savedBg) document.getElementById('bg-layer').style.backgroundImage = `url(${savedBg})`;
 
-// 2. Load Colors
 const savedColor = localStorage.getItem('cineTrackColor');
 if(savedColor) {
     document.documentElement.style.setProperty('--primary', savedColor);
@@ -389,18 +508,14 @@ if(savedTextColor) {
     document.documentElement.style.setProperty('--text-main', savedTextColor);
     document.getElementById('text-color-picker').value = savedTextColor;
 }
-
-// 3. Load Glass Mode
 const isGlass = localStorage.getItem('cineTrackGlass') === 'true';
 if(isGlass) {
     document.body.classList.add('glass-theme');
     document.getElementById('glass-toggle').checked = true;
 }
 
-// 4. Load View Mode
 const savedViewMode = localStorage.getItem('cineTrackViewMode') || 'grid';
 toggleViewMode(savedViewMode);
 
-// 5. Render Data
 renderMedia();
 updateStats();
