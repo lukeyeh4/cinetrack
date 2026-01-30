@@ -11,6 +11,9 @@
     --status-green: #55efc4;
 }
 
+/* GLOBAL FIX: PREVENTS OVERFLOW */
+* { box-sizing: border-box; }
+
 html, body { margin: 0; padding: 0; height: 100%; }
 
 body { 
@@ -26,7 +29,7 @@ body {
     background-color: var(--bg-color); 
 }
 
-/* Glass Mode Overrides */
+/* Glass Mode */
 body.glass-theme {
     --card-bg: rgba(20, 20, 20, 0.5);
     --header-bg: rgba(20, 20, 20, 0.3);
@@ -58,14 +61,13 @@ nav { display: flex; gap: 1rem; }
 }
 .nav-btn:hover, .nav-btn.active { opacity: 1; color: var(--primary); }
 
-/* --- NEW GLASS BUTTON STYLES --- */
+/* Glass Button Styles */
 .glass-btn {
-    background: rgba(255, 255, 255, 0.05); /* Very subtle fill */
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-top: 1px solid rgba(255, 255, 255, 0.3); /* Catching light on top */
-    border-left: 1px solid rgba(255, 255, 255, 0.3); /* Catching light on left */
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
     color: var(--text-main);
     padding: 8px 16px; border-radius: 12px;
@@ -73,30 +75,13 @@ nav { display: flex; gap: 1rem; }
     transition: all 0.3s ease;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
-
-.glass-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
+.glass-btn:hover { background: rgba(255, 255, 255, 0.15); transform: translateY(-2px); }
 .glass-btn:active { transform: translateY(0); }
-
 .primary-glass {
-    /* Slight tint of primary color for main action */
     background: linear-gradient(135deg, rgba(108, 92, 231, 0.4), rgba(108, 92, 231, 0.1));
     border-color: rgba(108, 92, 231, 0.5);
 }
-.primary-glass:hover { background: linear-gradient(135deg, rgba(108, 92, 231, 0.6), rgba(108, 92, 231, 0.2)); }
-
 .danger-glass { color: var(--danger); border-color: rgba(214, 48, 49, 0.3); }
-.danger-glass:hover { background: rgba(214, 48, 49, 0.2); }
-
-.filter-btn.active {
-    background: linear-gradient(135deg, rgba(108, 92, 231, 0.5), rgba(108, 92, 231, 0.2));
-    border-color: var(--primary);
-    box-shadow: 0 0 10px rgba(108, 92, 231, 0.3);
-}
 
 /* Controls Bar */
 .controls-bar {
@@ -104,15 +89,27 @@ nav { display: flex; gap: 1rem; }
     display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;
     background: var(--card-bg); border-radius: 12px;
 }
-#search-bar {
-    flex-grow: 1; max-width: 300px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);
+.search-wrapper { flex-grow: 1; max-width: 300px; }
+#search-bar { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); }
+.filter-group { display: flex; gap: 8px; flex-wrap: wrap;}
+.filter-btn.active {
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.5), rgba(108, 92, 231, 0.2));
+    border-color: var(--primary);
 }
-.filter-group { display: flex; gap: 8px; }
+.right-controls { display: flex; gap: 15px; align-items: center; }
 
-/* --- TOGGLE SWITCH STYLES --- */
+/* View Toggles */
+.view-toggles { display: flex; gap: 5px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 8px; }
+.icon-btn {
+    background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+    padding: 5px 10px; border-radius: 6px; transition: 0.2s;
+}
+.icon-btn.active { background: var(--primary); color: white; }
+.icon-btn:hover:not(.active) { color: white; }
+
+/* Toggle Switch */
 .toggle-wrapper { display: flex; align-items: center; gap: 10px; }
 .toggle-label { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
-
 .switch { position: relative; display: inline-block; width: 48px; height: 26px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider {
@@ -124,7 +121,6 @@ nav { display: flex; gap: 1rem; }
     position: absolute; content: ""; height: 18px; width: 18px;
     left: 4px; bottom: 3px; background-color: white;
     transition: .4s; border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 input:checked + .slider { background-color: var(--primary); }
 input:checked + .slider:before { transform: translateX(22px); }
@@ -142,7 +138,7 @@ input, select, textarea {
 }
 textarea { resize: vertical; min-height: 80px; font-family: inherit; margin: 5px 0;}
 
-/* Grid & Card */
+/* --- GRID LAYOUT (DEFAULT) --- */
 .grid-container {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 0 1rem 4rem 1rem;
@@ -151,22 +147,15 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; margin: 5px
     background-color: var(--card-bg); border-radius: 16px; padding: 1.5rem;
     position: relative; border: 1px solid rgba(255,255,255,0.05);
     display: flex; flex-direction: column; align-items: center;
-    transition: transform 0.2s, opacity 0.2s; /* Ensure smooth recovery */
+    transition: transform 0.2s, opacity 0.2s;
 }
-
-/* --- DRAG & DROP VISUALS --- */
 .card.dragging {
-    opacity: 0.9 !important; /* Keep it visible but distinctive */
-    transform: scale(1.05) rotate(2deg); /* POP EFFECT */
-    box-shadow: 0 15px 30px rgba(0,0,0,0.5);
-    border: 2px solid var(--primary);
-    z-index: 100;
+    opacity: 0.9 !important; transform: scale(1.05) rotate(2deg);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.5); z-index: 100; border: 2px solid var(--primary);
 }
-
 .card-poster {
     width: 100%; height: 350px; object-fit: cover;
     border-radius: 12px; margin-bottom: 15px; background-color: #2d2d2d;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 .card-type-badge {
     position: absolute; top: 35px; left: 35px;
@@ -177,6 +166,7 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; margin: 5px
 .card h3 { margin: 10px 0; font-size: 1.3rem; width: 100%; text-align: center; }
 .card-meta { width: 100%; display: flex; justify-content: center; margin-bottom: 10px; }
 
+/* Status Colors */
 .card-status-select {
     border: none; padding: 5px 12px; font-size: 0.8rem; border-radius: 20px; 
     cursor: pointer; font-weight: 600; color: #333; appearance: none;
@@ -186,11 +176,11 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; margin: 5px
 .select-watching { background-color: var(--status-yellow); }
 .select-seen { background-color: var(--status-green); }
 
+/* Actions */
 .card-actions {
     position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; opacity: 0; transition: 0.2s;
 }
 .card:hover .card-actions { opacity: 1; }
-
 .action-btn {
     background: rgba(0,0,0,0.6); color: white; border: none;
     cursor: pointer; width: 32px; height: 32px; border-radius: 50%;
@@ -212,6 +202,7 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; margin: 5px
     padding: 10px; border-radius: 6px; margin-top: 10px; font-style: italic;
 }
 
+/* TV Controls */
 .tv-controls-container { display: flex; gap: 10px; margin: 10px 0; justify-content: center; }
 .control-row {
     display: flex; align-items: center; gap: 5px;
@@ -222,6 +213,56 @@ textarea { resize: vertical; min-height: 80px; font-family: inherit; margin: 5px
     width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
 }
 
+/* --- LIST VIEW (CONDENSED) OVERRIDES --- */
+.grid-container.list-mode {
+    grid-template-columns: 1fr; /* Stack vertically */
+    gap: 0.8rem;
+}
+
+.grid-container.list-mode .card {
+    flex-direction: row; /* Horizontal alignment */
+    padding: 0.8rem 1.5rem;
+    height: auto;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: left;
+}
+
+/* Adjustments for children in List Mode */
+.grid-container.list-mode .card-poster {
+    width: 60px; height: 90px;
+    margin-bottom: 0;
+    flex-shrink: 0; /* Don't shrink image */
+}
+.grid-container.list-mode .card-type-badge {
+    position: static; /* Move into flow or hide */
+    font-size: 0.7rem; padding: 2px 6px;
+    margin-right: 10px;
+    display: none; /* Often cleaner to hide in condensed, or move next to title */
+}
+.grid-container.list-mode .card h3 {
+    margin: 0; width: auto; text-align: left; flex-grow: 1;
+    font-size: 1.1rem;
+}
+.grid-container.list-mode .card-meta {
+    width: auto; margin-bottom: 0; margin-left: 1rem;
+}
+.grid-container.list-mode .rating-display,
+.grid-container.list-mode .card-date {
+    margin: 0 1rem;
+    font-size: 0.9rem;
+}
+.grid-container.list-mode .card-notes { display: none; } /* Hide notes in list view for space */
+.grid-container.list-mode .drag-handle {
+    position: static; transform: none; margin-right: 10px; opacity: 1;
+}
+.grid-container.list-mode .card-actions {
+    position: static; opacity: 1; margin-left: auto;
+}
+.grid-container.list-mode .tv-controls-container { margin: 0 10px; }
+
+
+/* Settings & Stats */
 .settings-card, .stats-container {
     background: var(--card-bg); max-width: 800px; margin: 2rem auto;
     padding: 2rem; border-radius: 16px;
