@@ -2,86 +2,74 @@ const API_KEY = '78deb1e2';
 
 let mediaList = JSON.parse(localStorage.getItem('cineTrackData')) || [];
 
-// --- INITIALIZATION ---
-// 1. Load Background
+// --- INIT SETTINGS ---
 const savedBg = localStorage.getItem('cineTrackBg');
-if(savedBg) document.body.style.backgroundImage = `url(${savedBg})`;
+if(savedBg) document.getElementById('bg-layer').style.backgroundImage = `url(${savedBg})`;
 
-// 2. Load Accent Color
 const savedColor = localStorage.getItem('cineTrackColor');
 if(savedColor) {
     document.documentElement.style.setProperty('--primary', savedColor);
     document.getElementById('color-picker').value = savedColor;
 }
 
-// 3. Load Glass Mode
+const savedTextColor = localStorage.getItem('cineTrackTextColor');
+if(savedTextColor) {
+    document.documentElement.style.setProperty('--text-main', savedTextColor);
+    document.getElementById('text-color-picker').value = savedTextColor;
+}
+
 const isGlass = localStorage.getItem('cineTrackGlass') === 'true';
 if(isGlass) {
     document.body.classList.add('glass-theme');
     document.getElementById('glass-toggle').checked = true;
 }
 
+// --- DOM ELEMENTS ---
 const form = document.getElementById('movie-form');
 const listContainer = document.getElementById('movie-list');
 const tvFields = document.getElementById('tv-fields');
 const libraryView = document.getElementById('library-view');
 const settingsView = document.getElementById('settings-view');
-const filterButtons = document.querySelectorAll('.filter-btn');
+const statsView = document.getElementById('stats-view');
+const submitBtn = document.getElementById('submit-btn');
+const cancelEditBtn = document.getElementById('cancel-edit');
 
-renderMedia('all');
+renderMedia();
+updateStats();
 
-// --- TAB NAVIGATION ---
+// --- TABS & VIEWS ---
 window.switchTab = function(tabName) {
-    if(tabName === 'settings') {
-        libraryView.classList.add('hidden');
-        settingsView.classList.remove('hidden');
-    } else {
-        settingsView.classList.add('hidden');
-        libraryView.classList.remove('hidden');
+    libraryView.classList.add('hidden');
+    settingsView.classList.add('hidden');
+    statsView.classList.add('hidden');
+    
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active'); // Highlight clicked button
+
+    if(tabName === 'library') libraryView.classList.remove('hidden');
+    if(tabName === 'settings') settingsView.classList.remove('hidden');
+    if(tabName === 'stats') {
+        statsView.classList.remove('hidden');
+        updateStats();
     }
 }
 
-// --- THEME SETTINGS ---
-window.toggleGlassMode = function(isEnabled) {
-    if(isEnabled) {
-        document.body.classList.add('glass-theme');
-        localStorage.setItem('cineTrackGlass', 'true');
-    } else {
-        document.body.classList.remove('glass-theme');
-        localStorage.setItem('cineTrackGlass', 'false');
-    }
+// --- STATS LOGIC ---
+function updateStats() {
+    document.getElementById('stat-total').innerText = mediaList.length;
+    document.getElementById('stat-movies').innerText = mediaList.filter(i => i.type === 'Movie').length;
+    document.getElementById('stat-shows').innerText = mediaList.filter(i => i.type === 'TV Show').length;
+    
+    // Rough estimate: 2h per movie, 45m per episode
+    let minutes = 0;
+    mediaList.forEach(item => {
+        if(item.type === 'Movie') minutes += 120;
+        if(item.type === 'TV Show') minutes += (parseInt(item.episode || 1) * 45);
+    });
+    document.getElementById('stat-mins').innerText = minutes;
 }
 
-window.updateAccentColor = function(color) {
-    document.documentElement.style.setProperty('--primary', color);
-    localStorage.setItem('cineTrackColor', color);
-}
-
-window.resetTheme = function() {
-    if(confirm("Reset all visual settings?")) {
-        localStorage.removeItem('cineTrackBg');
-        localStorage.removeItem('cineTrackColor');
-        localStorage.removeItem('cineTrackGlass');
-        location.reload();
-    }
-}
-
-window.uploadBackground = function(input) {
-    const file = input.files[0];
-    if(!file) return;
-    if(file.size > 2 * 1024 * 1024) {
-        alert("Image too large! Use < 2MB.");
-        return;
-    }
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        localStorage.setItem('cineTrackBg', e.target.result);
-        document.body.style.backgroundImage = `url(${e.target.result})`;
-    };
-    reader.readAsDataURL(file);
-}
-
-// --- APP LOGIC ---
+// --- FORM HANDLING (ADD & EDIT) ---
 window.toggleTVFields = function() {
     const type = document.getElementById('type').value;
     if(type === 'TV Show') tvFields.classList.remove('hidden');
@@ -90,6 +78,8 @@ window.toggleTVFields = function() {
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    const editId = document.getElementById('edit-id').value;
     const title = document.getElementById('title').value;
     const type = document.getElementById('type').value;
     const status = document.getElementById('status').value;
@@ -99,74 +89,120 @@ form.addEventListener('submit', async (e) => {
     const season = document.getElementById('season').value || 1;
     const episode = document.getElementById('episode').value || 1;
 
-    let posterUrl = 'https://via.placeholder.com/300x450?text=No+Poster'; 
+    // Check if updating existing item
+    if(editId) {
+        const index = mediaList.findIndex(i => i.id == editId);
+        if(index > -1) {
+            mediaList[index] = { ...mediaList[index], title, type, status, rating, dateWatched, notes, season, episode };
+            saveAndRender();
+            cancelEditMode();
+        }
+        return;
+    }
 
+    // New Item
+    let posterUrl = 'https://via.placeholder.com/300x450?text=No+Poster'; 
     try {
         const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(title)}&apikey=${API_KEY}`);
         const data = await res.json();
         if (data.Poster && data.Poster !== 'N/A') posterUrl = data.Poster;
-    } catch (error) { console.error("Error fetching poster:", error); }
+    } catch (error) { console.error("Error:", error); }
 
     const newItem = {
         id: Date.now(),
         title, type, status, rating, poster: posterUrl,
         dateWatched, notes, season, episode
     };
+
     mediaList.push(newItem);
     saveAndRender();
     form.reset();
     toggleTVFields();
 });
 
-function filterMovies(status) {
-    filterButtons.forEach(btn => btn.classList.remove('active'));
-    // Simple check for the filter bar buttons
-    const activeBtn = Array.from(filterButtons).find(b => 
-        b.textContent.toLowerCase().replace(' ', '') === status || 
-        (status === 'all' && b.textContent === 'All')
-    );
-    if(activeBtn) activeBtn.classList.add('active');
-    renderMedia(status);
+window.startEdit = function(id) {
+    const item = mediaList.find(i => i.id === id);
+    if(!item) return;
+
+    // Populate Form
+    document.getElementById('edit-id').value = item.id;
+    document.getElementById('title').value = item.title;
+    document.getElementById('type').value = item.type;
+    document.getElementById('status').value = item.status;
+    document.getElementById('rating').value = item.rating || '';
+    document.getElementById('date-watched').value = item.dateWatched || '';
+    document.getElementById('notes').value = item.notes || '';
+    document.getElementById('season').value = item.season || 1;
+    document.getElementById('episode').value = item.episode || 1;
+
+    // UI Changes
+    toggleTVFields();
+    submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Item';
+    cancelEditBtn.classList.remove('hidden');
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+window.cancelEditMode = function() {
+    form.reset();
+    document.getElementById('edit-id').value = '';
+    submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add to Library';
+    cancelEditBtn.classList.add('hidden');
+    toggleTVFields();
+}
+
+// --- SEARCH & FILTER ---
+window.handleSearch = function() {
+    renderMedia();
+}
+
+window.filterMovies = function(status) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    // Find button with matching text or explicit match
+    const buttons = Array.from(document.querySelectorAll('.filter-btn'));
+    const btn = buttons.find(b => b.textContent.toLowerCase().replace(' ','') === status || (status === 'all' && b.textContent === 'All'));
+    if(btn) btn.classList.add('active');
+    
+    renderMedia();
 }
 
 function saveAndRender() {
     localStorage.setItem('cineTrackData', JSON.stringify(mediaList));
-    // Find active filter
+    renderMedia();
+    updateStats();
+}
+
+function renderMedia() {
+    listContainer.innerHTML = '';
+    
+    // Get Active Filter
     const activeBtn = document.querySelector('.filter-btn.active');
     const filter = activeBtn ? activeBtn.textContent.toLowerCase().replace(' ', '') : 'all';
-    renderMedia(filter === 'all' ? 'all' : filter);
-}
+    
+    // Get Search Query
+    const search = document.getElementById('search-bar').value.toLowerCase();
+    
+    // Get Hide Seen Toggle
+    const hideSeen = document.getElementById('hide-seen-toggle').checked;
 
-window.updateStatus = function(id, newStatus) {
-    const item = mediaList.find(i => i.id === id);
-    if(item) {
-        item.status = newStatus;
-        saveAndRender();
-    }
-}
-
-window.updateTvProgress = function(id, field, change) {
-    const item = mediaList.find(i => i.id === id);
-    if(item) {
-        let currentVal = parseInt(item[field]) || 1;
-        let newVal = currentVal + change;
-        if(newVal < 1) newVal = 1;
-        item[field] = newVal;
-        saveAndRender();
-    }
-}
-
-function renderMedia(filter) {
-    listContainer.innerHTML = '';
     const filteredList = mediaList.filter(item => {
-        if (filter === 'all') return true;
-        return item.status === filter;
+        const matchesFilter = (filter === 'all') || (item.status === filter);
+        const matchesSearch = item.title.toLowerCase().includes(search);
+        const matchesHideSeen = hideSeen ? item.status !== 'seen' : true;
+        
+        return matchesFilter && matchesSearch && matchesHideSeen;
     });
 
-    filteredList.forEach(item => {
+    filteredList.forEach((item, index) => {
         const card = document.createElement('div');
         card.className = 'card';
-        
+        card.draggable = true;
+        // Drag Events
+        card.addEventListener('dragstart', (e) => dragStart(e, index));
+        card.addEventListener('dragover', (e) => dragOver(e));
+        card.addEventListener('drop', (e) => drop(e, index));
+
         let colorClass = '';
         if(item.status === 'towatch') colorClass = 'select-towatch';
         if(item.status === 'watching') colorClass = 'select-watching';
@@ -181,13 +217,13 @@ function renderMedia(filter) {
             tvControls = `
                 <div class="tv-controls-container">
                     <div class="control-row">
-                        <span style="font-size:0.8rem; color:#aaa;">Seas</span>
+                        <span>S</span>
                         <button class="ep-btn" onclick="updateTvProgress(${item.id}, 'season', -1)">-</button>
                         <span>${item.season || 1}</span>
                         <button class="ep-btn" onclick="updateTvProgress(${item.id}, 'season', 1)">+</button>
                     </div>
                     <div class="control-row">
-                        <span style="font-size:0.8rem; color:#aaa;">Ep</span>
+                        <span>Ep</span>
                         <button class="ep-btn" onclick="updateTvProgress(${item.id}, 'episode', -1)">-</button>
                         <span>${item.episode || 1}</span>
                         <button class="ep-btn" onclick="updateTvProgress(${item.id}, 'episode', 1)">+</button>
@@ -197,18 +233,25 @@ function renderMedia(filter) {
         }
 
         card.innerHTML = `
-            <button class="delete-btn" onclick="deleteItem(${item.id})">
-                <i class="fas fa-trash"></i>
-            </button>
+            <div class="drag-handle"><i class="fas fa-grip-lines"></i></div>
+            
+            <div class="card-type-badge">${item.type}</div>
+            
+            <div class="card-actions">
+                <button class="action-btn" onclick="startEdit(${item.id})"><i class="fas fa-pencil-alt"></i></button>
+                <button class="action-btn delete-btn" onclick="deleteItem(${item.id})"><i class="fas fa-trash"></i></button>
+            </div>
+
             <img src="${item.poster}" class="card-poster" alt="${item.title}">
+            
             <div class="card-meta">
-                <span>${item.type}</span>
                 <select class="card-status-select ${colorClass}" onchange="updateStatus(${item.id}, this.value)">
                     <option value="towatch" ${isToWatch}>To Watch</option>
                     <option value="watching" ${isWatching}>Watching</option>
                     <option value="seen" ${isSeen}>Seen</option>
                 </select>
             </div>
+            
             <h3>${item.title}</h3>
             ${tvControls}
             ${item.rating ? `<div class="rating-display"><i class="fas fa-star"></i> ${item.rating}/10</div>` : ''}
@@ -219,9 +262,80 @@ function renderMedia(filter) {
     });
 }
 
+// --- DRAG AND DROP ---
+let draggedItemIndex = null;
+
+function dragStart(e, index) {
+    draggedItemIndex = index;
+    e.target.classList.add('dragging');
+}
+
+function dragOver(e) {
+    e.preventDefault(); // Necessary to allow dropping
+}
+
+function drop(e, dropIndex) {
+    e.preventDefault();
+    const draggedItem = mediaList[draggedItemIndex];
+    
+    // Remove from old position
+    mediaList.splice(draggedItemIndex, 1);
+    // Insert at new position
+    mediaList.splice(dropIndex, 0, draggedItem);
+    
+    saveAndRender();
+}
+
+// --- GLOBAL ACTIONS ---
 window.deleteItem = function(id) {
     if(confirm('Delete this title?')) {
         mediaList = mediaList.filter(item => item.id !== id);
         saveAndRender();
+    }
+}
+window.updateStatus = function(id, newStatus) {
+    const item = mediaList.find(i => i.id === id);
+    if(item) { item.status = newStatus; saveAndRender(); }
+}
+window.updateTvProgress = function(id, field, change) {
+    const item = mediaList.find(i => i.id === id);
+    if(item) {
+        let val = parseInt(item[field]) || 1;
+        item[field] = Math.max(1, val + change);
+        saveAndRender();
+    }
+}
+
+// --- SETTINGS ---
+window.toggleGlassMode = function(checked) {
+    document.body.classList.toggle('glass-theme', checked);
+    localStorage.setItem('cineTrackGlass', checked);
+}
+window.updateAccentColor = function(color) {
+    document.documentElement.style.setProperty('--primary', color);
+    localStorage.setItem('cineTrackColor', color);
+}
+window.updateTextColor = function(color) {
+    document.documentElement.style.setProperty('--text-main', color);
+    localStorage.setItem('cineTrackTextColor', color);
+}
+window.resetTheme = function() {
+    if(confirm("Reset theme?")) {
+        localStorage.removeItem('cineTrackBg');
+        localStorage.removeItem('cineTrackColor');
+        localStorage.removeItem('cineTrackTextColor');
+        localStorage.removeItem('cineTrackGlass');
+        location.reload();
+    }
+}
+window.uploadBackground = function(input) {
+    const file = input.files[0];
+    if(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            localStorage.setItem('cineTrackBg', e.target.result);
+            document.getElementById('bg-layer').style.backgroundImage = `url(${e.target.result})`;
+        };
+        reader.readAsDataURL(file);
     }
 }
