@@ -2,32 +2,6 @@ const API_KEY = '78deb1e2';
 
 let mediaList = JSON.parse(localStorage.getItem('cineTrackData')) || [];
 
-// --- INIT SETTINGS & VIEW ---
-const savedBg = localStorage.getItem('cineTrackBg');
-if(savedBg) document.getElementById('bg-layer').style.backgroundImage = `url(${savedBg})`;
-
-const savedColor = localStorage.getItem('cineTrackColor');
-if(savedColor) {
-    document.documentElement.style.setProperty('--primary', savedColor);
-    document.getElementById('color-picker').value = savedColor;
-}
-
-const savedTextColor = localStorage.getItem('cineTrackTextColor');
-if(savedTextColor) {
-    document.documentElement.style.setProperty('--text-main', savedTextColor);
-    document.getElementById('text-color-picker').value = savedTextColor;
-}
-
-const isGlass = localStorage.getItem('cineTrackGlass') === 'true';
-if(isGlass) {
-    document.body.classList.add('glass-theme');
-    document.getElementById('glass-toggle').checked = true;
-}
-
-// Load View Mode (Grid or List)
-const savedViewMode = localStorage.getItem('cineTrackViewMode') || 'grid';
-toggleViewMode(savedViewMode);
-
 // --- DOM ELEMENTS ---
 const form = document.getElementById('movie-form');
 const listContainer = document.getElementById('movie-list');
@@ -37,9 +11,6 @@ const settingsView = document.getElementById('settings-view');
 const statsView = document.getElementById('stats-view');
 const submitBtn = document.getElementById('submit-btn');
 const cancelEditBtn = document.getElementById('cancel-edit');
-
-renderMedia();
-updateStats();
 
 // --- TABS ---
 window.switchTab = function(tabName) {
@@ -63,6 +34,9 @@ window.toggleViewMode = function(mode) {
     const gridBtn = document.getElementById('view-grid');
     const listBtn = document.getElementById('view-list');
     const container = document.getElementById('movie-list');
+
+    // Safety check in case HTML isn't updated
+    if(!gridBtn || !listBtn) return;
 
     if(mode === 'list') {
         container.classList.add('list-mode');
@@ -397,3 +371,36 @@ window.restoreBackup = function(input) {
     reader.readAsText(file);
     input.value = ''; 
 }
+
+// --- INITIALIZATION (Must be at the bottom) ---
+
+// 1. Load Background
+const savedBg = localStorage.getItem('cineTrackBg');
+if(savedBg) document.getElementById('bg-layer').style.backgroundImage = `url(${savedBg})`;
+
+// 2. Load Colors
+const savedColor = localStorage.getItem('cineTrackColor');
+if(savedColor) {
+    document.documentElement.style.setProperty('--primary', savedColor);
+    document.getElementById('color-picker').value = savedColor;
+}
+const savedTextColor = localStorage.getItem('cineTrackTextColor');
+if(savedTextColor) {
+    document.documentElement.style.setProperty('--text-main', savedTextColor);
+    document.getElementById('text-color-picker').value = savedTextColor;
+}
+
+// 3. Load Glass Mode
+const isGlass = localStorage.getItem('cineTrackGlass') === 'true';
+if(isGlass) {
+    document.body.classList.add('glass-theme');
+    document.getElementById('glass-toggle').checked = true;
+}
+
+// 4. Load View Mode
+const savedViewMode = localStorage.getItem('cineTrackViewMode') || 'grid';
+toggleViewMode(savedViewMode);
+
+// 5. Render Data
+renderMedia();
+updateStats();
