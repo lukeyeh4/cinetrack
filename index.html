@@ -14,12 +14,18 @@
         <div class="logo">
             <i class="fas fa-film"></i> CineTrack
         </div>
+        
         <nav>
             <button class="nav-btn active" onclick="filterMovies('all')">All</button>
             <button class="nav-btn" onclick="filterMovies('towatch')">To Watch</button>
             <button class="nav-btn" onclick="filterMovies('watching')">Watching</button>
             <button class="nav-btn" onclick="filterMovies('seen')">Seen</button>
         </nav>
+
+        <button class="theme-btn" onclick="document.getElementById('bg-upload').click()">
+            <i class="fas fa-image"></i> Theme
+        </button>
+        <input type="file" id="bg-upload" accept="image/*" hidden onchange="uploadBackground(this)">
     </header>
 
     <main>
