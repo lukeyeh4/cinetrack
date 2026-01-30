@@ -11,9 +11,7 @@
     --status-green: #55efc4;
 }
 
-/* GLOBAL FIX: PREVENTS OVERFLOW */
 * { box-sizing: border-box; }
-
 html, body { margin: 0; padding: 0; height: 100%; }
 
 body { 
@@ -85,7 +83,7 @@ nav { display: flex; gap: 1rem; }
 }
 .danger-glass { color: var(--danger); border-color: rgba(214, 48, 49, 0.3); }
 
-/* --- CONTROLS & FORM --- */
+/* Controls & Form */
 .controls-bar {
     max-width: 1200px; margin: 0 auto 1.5rem auto; padding: 1rem;
     display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;
@@ -127,7 +125,7 @@ nav { display: flex; gap: 1rem; }
 input:checked + .slider { background-color: var(--primary); }
 input:checked + .slider:before { transform: translateX(22px); }
 
-/* --- FORM & MODERN INPUTS --- */
+/* Form & Inputs */
 .add-section { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
 #movie-form {
     background: var(--card-bg); padding: 1.5rem; border-radius: 16px;
@@ -142,32 +140,20 @@ input, select, textarea {
 }
 textarea { resize: vertical; min-height: 80px; margin: 5px 0;}
 
-/* MODERN DROPDOWN STYLE */
-.select-wrapper {
-    position: relative; width: 100%;
-}
+.select-wrapper { position: relative; width: 100%; }
 .select-wrapper select {
-    appearance: none; -webkit-appearance: none; -moz-appearance: none;
-    background-color: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: var(--text-main);
-    cursor: pointer;
-    padding-right: 30px; /* Space for the icon */
+    appearance: none; -webkit-appearance: none; padding-right: 30px;
+    background-color: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-main); cursor: pointer;
 }
 .select-wrapper .select-icon {
     position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
     pointer-events: none; color: var(--text-muted); font-size: 0.8rem;
 }
-.select-wrapper select:focus {
-    border-color: var(--primary);
-    background-color: rgba(0,0,0,0.5);
-}
-/* Style options (limited support in browsers, but good effort) */
-.select-wrapper select option {
-    background-color: #2d2d2d; color: white;
-}
+.select-wrapper select:focus { border-color: var(--primary); background-color: rgba(0,0,0,0.5); }
+.select-wrapper select option { background-color: #2d2d2d; color: white; }
 
-/* --- GRID LAYOUT (DEFAULT) --- */
+/* Grid Layout */
 .grid-container {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 0 1rem 4rem 1rem;
@@ -195,7 +181,7 @@ textarea { resize: vertical; min-height: 80px; margin: 5px 0;}
 .card h3 { margin: 10px 0; font-size: 1.3rem; width: 100%; text-align: center; }
 .card-meta { width: 100%; display: flex; justify-content: center; margin-bottom: 10px; }
 
-/* Status Colors (Card Specific) */
+/* Status Colors */
 .card-status-select {
     border: none; padding: 5px 12px; font-size: 0.8rem; border-radius: 20px; 
     cursor: pointer; font-weight: 600; color: #333; appearance: none;
@@ -205,7 +191,7 @@ textarea { resize: vertical; min-height: 80px; margin: 5px 0;}
 .select-watching { background-color: var(--status-yellow); }
 .select-seen { background-color: var(--status-green); }
 
-/* Actions */
+/* Card Actions */
 .card-actions {
     position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; opacity: 0; transition: 0.2s;
 }
@@ -232,31 +218,21 @@ textarea { resize: vertical; min-height: 80px; margin: 5px 0;}
 }
 .tv-controls-container { width: 100%; margin: 10px 0; }
 
-/* --- LIST VIEW (CONDENSED) --- */
-.grid-container.list-mode {
-    grid-template-columns: 1fr; gap: 0.8rem;
-}
+/* List View */
+.grid-container.list-mode { grid-template-columns: 1fr; gap: 0.8rem; }
 .grid-container.list-mode .card {
     flex-direction: row; padding: 0.8rem 1.5rem; height: auto;
     align-items: center; gap: 1.5rem; text-align: left;
 }
-.grid-container.list-mode .card-poster {
-    width: 60px; height: 90px; margin-bottom: 0; flex-shrink: 0;
-}
+.grid-container.list-mode .card-poster { width: 60px; height: 90px; margin-bottom: 0; flex-shrink: 0; }
 .grid-container.list-mode .card-type-badge { display: none; }
-.grid-container.list-mode .card h3 {
-    margin: 0; width: auto; text-align: left; flex-grow: 1; font-size: 1.1rem;
-}
+.grid-container.list-mode .card h3 { margin: 0; width: auto; text-align: left; flex-grow: 1; font-size: 1.1rem; }
 .grid-container.list-mode .card-meta { width: auto; margin-bottom: 0; margin-left: 1rem; }
 .grid-container.list-mode .rating-display,
 .grid-container.list-mode .card-date { margin: 0 1rem; font-size: 0.9rem; }
 .grid-container.list-mode .card-notes { display: none; }
-.grid-container.list-mode .drag-handle {
-    position: static; transform: none; margin-right: 10px; opacity: 1;
-}
-.grid-container.list-mode .card-actions {
-    position: static; opacity: 1; margin-left: auto;
-}
+.grid-container.list-mode .drag-handle { position: static; transform: none; margin-right: 10px; opacity: 1; }
+.grid-container.list-mode .card-actions { position: static; opacity: 1; margin-left: auto; }
 .grid-container.list-mode .tv-controls-container { width: auto; margin: 0 10px; }
 
 /* --- MODAL & EPISODES --- */
@@ -284,27 +260,43 @@ textarea { resize: vertical; min-height: 80px; margin: 5px 0;}
 }
 .modal-body { padding: 1.5rem; overflow-y: auto; flex-grow: 1; }
 
-/* Episode Checklist */
-.season-group { margin-bottom: 2rem; }
-.season-title { 
-    font-size: 1.1rem; font-weight: bold; color: var(--text-muted);
+/* Episode Search Bar */
+#episode-search-bar {
+    width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.3); color: white; margin-bottom: 1.5rem;
 }
+
+/* Collapsible Seasons */
+.season-group { margin-bottom: 1.5rem; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.02); }
+.season-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1rem; cursor: pointer; background: rgba(255,255,255,0.05);
+    transition: background 0.2s;
+    user-select: none;
+}
+.season-header:hover { background: rgba(255,255,255,0.1); }
+.season-title-text { font-weight: bold; color: var(--text-muted); display: flex; align-items: center; gap: 10px; }
+.season-chevron { transition: transform 0.3s ease; }
+.season-chevron.rotated { transform: rotate(-90deg); } /* Points down by default, rotates left when closed */
+
+.season-content { display: block; }
+.season-content.hidden { display: none; }
+
 .episode-item {
-    display: flex; align-items: center; gap: 15px; padding: 10px; border-radius: 8px;
-    transition: 0.2s; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.02);
+    display: flex; align-items: center; gap: 15px; padding: 10px 1rem; 
+    border-bottom: 1px solid rgba(255,255,255,0.02);
+    cursor: pointer; transition: 0.2s;
 }
 .episode-item:hover { background: rgba(255,255,255,0.05); }
+
+/* Checkbox */
 .ep-checkbox {
     width: 20px; height: 20px; border: 2px solid var(--text-muted);
     border-radius: 4px; display: flex; align-items: center; justify-content: center;
-    transition: 0.2s;
+    transition: 0.2s; flex-shrink: 0;
 }
-.episode-item.watched .ep-checkbox {
-    background: var(--primary); border-color: var(--primary);
-}
-.episode-item.watched .ep-checkbox::after {
-    content: '✔'; font-size: 12px; color: white;
-}
+.episode-item.watched .ep-checkbox { background: var(--primary); border-color: var(--primary); }
+.episode-item.watched .ep-checkbox::after { content: '✔'; font-size: 12px; color: white; }
 .episode-item.watched span { opacity: 0.5; text-decoration: line-through; }
 .ep-number { font-weight: bold; color: var(--text-muted); font-size: 0.9rem; min-width: 35px; }
 
