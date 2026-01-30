@@ -2,7 +2,7 @@ const API_KEY = '78deb1e2';
 
 let mediaList = JSON.parse(localStorage.getItem('cineTrackData')) || [];
 
-// --- INIT SETTINGS ---
+// --- INIT SETTINGS & VIEW ---
 const savedBg = localStorage.getItem('cineTrackBg');
 if(savedBg) document.getElementById('bg-layer').style.backgroundImage = `url(${savedBg})`;
 
@@ -23,6 +23,10 @@ if(isGlass) {
     document.body.classList.add('glass-theme');
     document.getElementById('glass-toggle').checked = true;
 }
+
+// Load View Mode (Grid or List)
+const savedViewMode = localStorage.getItem('cineTrackViewMode') || 'grid';
+toggleViewMode(savedViewMode);
 
 // --- DOM ELEMENTS ---
 const form = document.getElementById('movie-form');
@@ -52,6 +56,24 @@ window.switchTab = function(tabName) {
         statsView.classList.remove('hidden');
         updateStats();
     }
+}
+
+// --- VIEW MODE TOGGLE ---
+window.toggleViewMode = function(mode) {
+    const gridBtn = document.getElementById('view-grid');
+    const listBtn = document.getElementById('view-list');
+    const container = document.getElementById('movie-list');
+
+    if(mode === 'list') {
+        container.classList.add('list-mode');
+        listBtn.classList.add('active');
+        gridBtn.classList.remove('active');
+    } else {
+        container.classList.remove('list-mode');
+        gridBtn.classList.add('active');
+        listBtn.classList.remove('active');
+    }
+    localStorage.setItem('cineTrackViewMode', mode);
 }
 
 // --- STATS ---
@@ -186,7 +208,7 @@ function renderMedia() {
         card.addEventListener('dragstart', (e) => dragStart(e, index));
         card.addEventListener('dragover', (e) => dragOver(e));
         card.addEventListener('drop', (e) => drop(e, index));
-        card.addEventListener('dragend', (e) => dragEnd(e)); // New Handler
+        card.addEventListener('dragend', (e) => dragEnd(e)); 
 
         let colorClass = '';
         if(item.status === 'towatch') colorClass = 'select-towatch';
@@ -247,15 +269,12 @@ let draggedItemIndex = null;
 
 function dragStart(e, index) {
     draggedItemIndex = index;
-    // Delay adding the class so the ghost image is taken BEFORE we pop/rotate the card
     setTimeout(() => {
         e.target.classList.add('dragging');
     }, 0);
 }
 
 function dragEnd(e) {
-    // CRITICAL FIX: Ensure visibility is restored when drag ends, 
-    // regardless of whether it was dropped or not.
     e.target.classList.remove('dragging');
 }
 
@@ -266,10 +285,8 @@ function dragOver(e) {
 function drop(e, dropIndex) {
     e.preventDefault();
     const draggedItem = mediaList[draggedItemIndex];
-    
     mediaList.splice(draggedItemIndex, 1);
     mediaList.splice(dropIndex, 0, draggedItem);
-    
     saveAndRender();
 }
 
@@ -325,4 +342,58 @@ window.uploadBackground = function(input) {
         };
         reader.readAsDataURL(file);
     }
+}
+
+// --- DATA MANAGEMENT ---
+window.downloadBackup = function() {
+    const backupData = {
+        mediaList: mediaList,
+        preferences: {
+            bg: localStorage.getItem('cineTrackBg'),
+            color: localStorage.getItem('cineTrackColor'),
+            textColor: localStorage.getItem('cineTrackTextColor'),
+            glass: localStorage.getItem('cineTrackGlass')
+        },
+        exportDate: new Date().toISOString()
+    };
+    const dataStr = JSON.stringify(backupData, null, 2); 
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cinetrack_backup_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+window.restoreBackup = function(input) {
+    const file = input.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if(!data.mediaList) { alert("Invalid backup file!"); return; }
+            if(confirm(`Restore backup from ${data.exportDate || 'unknown date'}? This will overwrite current data.`)) {
+                mediaList = data.mediaList;
+                localStorage.setItem('cineTrackData', JSON.stringify(mediaList));
+                if(data.preferences) {
+                    if(data.preferences.bg) localStorage.setItem('cineTrackBg', data.preferences.bg);
+                    if(data.preferences.color) localStorage.setItem('cineTrackColor', data.preferences.color);
+                    if(data.preferences.textColor) localStorage.setItem('cineTrackTextColor', data.preferences.textColor);
+                    if(data.preferences.glass) localStorage.setItem('cineTrackGlass', data.preferences.glass);
+                }
+                alert("Restore successful! Reloading...");
+                location.reload();
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error reading file. Make sure it's a valid JSON.");
+        }
+    };
+    reader.readAsText(file);
+    input.value = ''; 
 }
