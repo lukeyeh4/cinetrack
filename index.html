@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CineTrack | Personal Watchlist</title>
+    <title>CineTrack</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -16,55 +16,81 @@
         </div>
         
         <nav>
-            <button class="nav-btn active" onclick="filterMovies('all')">All</button>
-            <button class="nav-btn" onclick="filterMovies('towatch')">To Watch</button>
-            <button class="nav-btn" onclick="filterMovies('watching')">Watching</button>
-            <button class="nav-btn" onclick="filterMovies('seen')">Seen</button>
+            <button class="nav-btn active" onclick="switchTab('all')">Library</button>
+            <button class="nav-btn" onclick="switchTab('settings')"><i class="fas fa-cog"></i> Settings</button>
         </nav>
-
-        <button class="theme-btn" onclick="document.getElementById('bg-upload').click()">
-            <i class="fas fa-image"></i> Theme
-        </button>
-        <input type="file" id="bg-upload" accept="image/*" hidden onchange="uploadBackground(this)">
     </header>
 
     <main>
-        <section class="add-section">
-            <form id="movie-form">
-                <div class="form-row">
-                    <input type="text" id="title" placeholder="Enter Movie or Show Title..." required autocomplete="off">
-                    <select id="type" onchange="toggleTVFields()">
-                        <option value="Movie">Movie</option>
-                        <option value="TV Show">TV Show</option>
-                    </select>
-                </div>
+        <div id="library-view">
+            <div class="filter-bar">
+                <button class="filter-btn active" onclick="filterMovies('all')">All</button>
+                <button class="filter-btn" onclick="filterMovies('towatch')">To Watch</button>
+                <button class="filter-btn" onclick="filterMovies('watching')">Watching</button>
+                <button class="filter-btn" onclick="filterMovies('seen')">Seen</button>
+            </div>
 
-                <div id="tv-fields" class="form-row hidden">
-                    <input type="number" id="season" placeholder="Season" min="1">
-                    <input type="number" id="episode" placeholder="Episode" min="1">
-                </div>
+            <section class="add-section">
+                <form id="movie-form">
+                    <div class="form-row">
+                        <input type="text" id="title" placeholder="Enter Title..." required autocomplete="off">
+                        <select id="type" onchange="toggleTVFields()">
+                            <option value="Movie">Movie</option>
+                            <option value="TV Show">TV Show</option>
+                        </select>
+                    </div>
 
-                <div class="form-row">
-                    <select id="status">
-                        <option value="towatch">To Watch</option>
-                        <option value="watching">Watching</option>
-                        <option value="seen">Seen</option>
-                    </select>
-                    <input type="number" id="rating" min="1" max="10" placeholder="Score /10">
-                    <input type="date" id="date-watched" title="Date Watched">
-                </div>
+                    <div id="tv-fields" class="form-row hidden">
+                        <input type="number" id="season" placeholder="Season" min="1">
+                        <input type="number" id="episode" placeholder="Episode" min="1">
+                    </div>
 
-                <textarea id="notes" placeholder="Add your review or notes here..."></textarea>
+                    <div class="form-row">
+                        <select id="status">
+                            <option value="towatch">To Watch</option>
+                            <option value="watching">Watching</option>
+                            <option value="seen">Seen</option>
+                        </select>
+                        <input type="number" id="rating" min="1" max="10" placeholder="Score /10">
+                        <input type="date" id="date-watched">
+                    </div>
 
-                <button type="submit"><i class="fas fa-plus"></i> Add to Library</button>
-            </form>
-        </section>
-
-        <section class="grid-container" id="movie-list">
+                    <textarea id="notes" placeholder="Add notes..."></textarea>
+                    <button type="submit" class="add-btn"><i class="fas fa-plus"></i> Add to Library</button>
+                </form>
             </section>
-        
-        <div id="empty-state" class="hidden">
-            <p>No content found here yet.</p>
+
+            <section class="grid-container" id="movie-list">
+                </section>
+        </div>
+
+        <div id="settings-view" class="hidden">
+            <div class="settings-card">
+                <h2><i class="fas fa-palette"></i> Appearance</h2>
+                
+                <div class="setting-item">
+                    <label>Liquid Glass Mode</label>
+                    <input type="checkbox" id="glass-toggle" onchange="toggleGlassMode(this.checked)">
+                </div>
+
+                <div class="setting-item">
+                    <label>Accent Color</label>
+                    <input type="color" id="color-picker" value="#6c5ce7" onchange="updateAccentColor(this.value)">
+                </div>
+
+                <div class="setting-item">
+                    <label>Custom Background</label>
+                    <button class="upload-btn" onclick="document.getElementById('bg-upload').click()">
+                        <i class="fas fa-upload"></i> Upload Image
+                    </button>
+                    <input type="file" id="bg-upload" accept="image/*" hidden onchange="uploadBackground(this)">
+                </div>
+                
+                <div class="setting-item">
+                    <label>Reset Theme</label>
+                    <button class="danger-btn" onclick="resetTheme()">Reset to Default</button>
+                </div>
+            </div>
         </div>
     </main>
 
