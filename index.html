@@ -25,22 +25,27 @@
     <main>
         <section class="add-section">
             <form id="movie-form">
-                <input type="text" id="title" placeholder="Enter Movie or Show Title..." required autocomplete="off">
-                
-                <select id="type">
-                    <option value="Movie">Movie</option>
-                    <option value="TV Show">TV Show</option>
-                </select>
+                <div class="form-row">
+                    <input type="text" id="title" placeholder="Enter Movie or Show Title..." required autocomplete="off">
+                    <select id="type">
+                        <option value="Movie">Movie</option>
+                        <option value="TV Show">TV Show</option>
+                    </select>
+                </div>
 
-                <select id="status">
-                    <option value="towatch">To Watch</option>
-                    <option value="watching">Watching</option>
-                    <option value="seen">Seen</option>
-                </select>
+                <div class="form-row">
+                    <select id="status">
+                        <option value="towatch">To Watch</option>
+                        <option value="watching">Watching</option>
+                        <option value="seen">Seen</option>
+                    </select>
+                    <input type="number" id="rating" min="1" max="10" placeholder="Score /10">
+                    <input type="date" id="date-watched" title="Date Watched">
+                </div>
 
-                <input type="number" id="rating" min="1" max="10" placeholder="Score /10">
+                <textarea id="notes" placeholder="Add your review or notes here..."></textarea>
 
-                <button type="submit"><i class="fas fa-plus"></i> Add</button>
+                <button type="submit"><i class="fas fa-plus"></i> Add to Library</button>
             </form>
         </section>
 
