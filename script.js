@@ -184,15 +184,10 @@ function renderMedia() {
         return matchesFilter && matchesSearch && matchesHideSeen;
     });
 
-    filteredList.forEach((item, index) => {
+    filteredList.forEach((item) => {
         const card = document.createElement('div');
         card.className = 'card';
-        card.draggable = true;
-        
-        card.addEventListener('dragstart', (e) => dragStart(e, index));
-        card.addEventListener('dragover', (e) => dragOver(e));
-        card.addEventListener('drop', (e) => drop(e, index));
-        card.addEventListener('dragend', (e) => dragEnd(e)); 
+        card.dataset.id = item.id; // Needed for re-ordering
 
         let colorClass = '';
         if(item.status === 'towatch') colorClass = 'select-towatch';
@@ -237,22 +232,116 @@ function renderMedia() {
             ${item.dateWatched ? `<span class="card-date"><i class="far fa-calendar-alt"></i> ${item.dateWatched}</span>` : ''}
             ${item.notes ? `<div class="card-notes">"${item.notes}"</div>` : ''}
         `;
+
+        // NEW: Attach mouse event to the handle manually
+        const handle = card.querySelector('.drag-handle');
+        if(handle) {
+            handle.addEventListener('mousedown', (e) => startCustomDrag(e, card, item));
+        }
+
         listContainer.appendChild(card);
     });
 }
 
-// --- DRAG LOGIC ---
-let draggedItemIndex = null;
-function dragStart(e, index) { draggedItemIndex = index; setTimeout(() => { e.target.classList.add('dragging'); }, 0); }
-function dragEnd(e) { e.target.classList.remove('dragging'); }
-function dragOver(e) { e.preventDefault(); }
-function drop(e, dropIndex) {
-    e.preventDefault();
-    const draggedItem = mediaList[draggedItemIndex];
-    mediaList.splice(draggedItemIndex, 1);
-    mediaList.splice(dropIndex, 0, draggedItem);
-    saveAndRender();
+// ==========================================
+// ===  CUSTOM "PHYSICAL" DRAG SYSTEM     ===
+// ==========================================
+
+let isDragging = false;
+let dragGhost = null;
+let dragOriginal = null;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+function startCustomDrag(e, card, item) {
+    e.preventDefault(); 
+    isDragging = true;
+    dragOriginal = card;
+    document.body.classList.add('is-dragging');
+
+    // Calculate offset
+    const rect = card.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+
+    // Create Ghost
+    dragGhost = card.cloneNode(true);
+    dragGhost.classList.add('card-ghost');
+    dragGhost.style.width = `${rect.width}px`;
+    dragGhost.style.height = `${rect.height}px`;
+    dragGhost.style.left = `${rect.left}px`;
+    dragGhost.style.top = `${rect.top}px`;
+    
+    document.body.appendChild(dragGhost);
+
+    // Hide original
+    card.classList.add('dragging-original');
+
+    // Global listeners
+    window.addEventListener('mousemove', onDragMove);
+    window.addEventListener('mouseup', onDragEnd);
 }
+
+function onDragMove(e) {
+    if (!isDragging || !dragGhost) return;
+
+    // Move Ghost
+    const x = e.clientX - dragOffsetX;
+    const y = e.clientY - dragOffsetY;
+    dragGhost.style.left = `${x}px`;
+    dragGhost.style.top = `${y}px`;
+
+    // Swap Logic
+    dragGhost.style.display = 'none';
+    let elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+    dragGhost.style.display = 'flex';
+
+    if (!elemBelow) return;
+
+    const cardBelow = elemBelow.closest('.card');
+    if (cardBelow && cardBelow !== dragOriginal && listContainer.contains(cardBelow)) {
+        
+        const parent = cardBelow.parentNode;
+        const children = Array.from(parent.children);
+        const originalIndex = children.indexOf(dragOriginal);
+        const targetIndex = children.indexOf(cardBelow);
+
+        if (originalIndex < targetIndex) {
+            parent.insertBefore(dragOriginal, cardBelow.nextSibling);
+        } else {
+            parent.insertBefore(dragOriginal, cardBelow);
+        }
+    }
+}
+
+function onDragEnd() {
+    if (!isDragging) return;
+
+    if (dragGhost) dragGhost.remove();
+    if (dragOriginal) dragOriginal.classList.remove('dragging-original');
+    document.body.classList.remove('is-dragging');
+
+    reorderMediaList();
+
+    window.removeEventListener('mousemove', onDragMove);
+    window.removeEventListener('mouseup', onDragEnd);
+    
+    isDragging = false;
+    dragGhost = null;
+    dragOriginal = null;
+}
+
+function reorderMediaList() {
+    const newOrderIds = Array.from(listContainer.children).map(card => card.dataset.id);
+    const itemMap = new Map(mediaList.map(item => [String(item.id), item]));
+    const newMediaList = [];
+    newOrderIds.forEach(id => {
+        if(itemMap.has(id)) newMediaList.push(itemMap.get(id));
+    });
+    mediaList = newMediaList;
+    saveAndRender(); 
+}
+
 
 // --- GLOBAL ACTIONS ---
 window.deleteItem = function(id) {
@@ -279,7 +368,6 @@ window.openEpisodeTracker = async function(id) {
     modalTitle.innerText = item.title;
     modalBody.innerHTML = '<div class="loader"></div><p style="text-align:center">Loading episode guide...</p>';
 
-    // Check Session Storage
     const sessionKey = `cineTrack_titles_${item.title}`;
     let episodeData = sessionStorage.getItem(sessionKey);
 
@@ -318,7 +406,7 @@ async function fetchAndCacheEpisodes(item, sessionKey) {
             }
         }
         
-        item.totalEpisodes = grandTotal; // Save total count for progress logic
+        item.totalEpisodes = grandTotal; 
         saveAndRender();
 
         sessionStorage.setItem(sessionKey, JSON.stringify(allSeasons));
@@ -332,7 +420,7 @@ async function fetchAndCacheEpisodes(item, sessionKey) {
 function setupModalLayout(item, seasonData) {
     modalBody.innerHTML = '';
     
-    // 1. Search Bar
+    // Search Bar
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.id = 'episode-search-bar';
@@ -340,7 +428,6 @@ function setupModalLayout(item, seasonData) {
     searchInput.onkeyup = (e) => filterEpisodes(e.target.value);
     modalBody.appendChild(searchInput);
 
-    // 2. Container for episodes
     const container = document.createElement('div');
     container.id = 'episodes-container';
     modalBody.appendChild(container);
@@ -356,7 +443,6 @@ function renderSeasonList(item, seasonData, container) {
         seasonDiv.className = 'season-group';
         seasonDiv.id = `season-group-${seasonNum}`;
         
-        // Header (Click to collapse)
         const headerHtml = `
             <div class="season-header" onclick="toggleSeason(${seasonNum})">
                 <span class="season-title-text">
@@ -370,7 +456,6 @@ function renderSeasonList(item, seasonData, container) {
         `;
         seasonDiv.innerHTML = headerHtml;
 
-        // Content (Hidden/Shown)
         const contentDiv = document.createElement('div');
         contentDiv.className = 'season-content';
         contentDiv.id = `season-content-${seasonNum}`;
@@ -381,7 +466,7 @@ function renderSeasonList(item, seasonData, container) {
 
             const epRow = document.createElement('div');
             epRow.className = `episode-item ${isWatched ? 'watched' : ''}`;
-            epRow.id = `ep-row-${epId}`; // ID for quick updates
+            epRow.id = `ep-row-${epId}`; 
             epRow.onclick = () => toggleEpisode(item.id, epId);
             
             epRow.innerHTML = `
@@ -397,7 +482,7 @@ function renderSeasonList(item, seasonData, container) {
     });
 }
 
-// Toggle Season Visibility
+// Toggle Season
 window.toggleSeason = function(seasonNum) {
     const content = document.getElementById(`season-content-${seasonNum}`);
     const chevron = document.getElementById(`chevron-${seasonNum}`);
@@ -421,7 +506,6 @@ window.filterEpisodes = function(query) {
         }
     });
 
-    // Optional: If searching, expand all seasons so results are visible
     if(text.length > 0) {
         document.querySelectorAll('.season-content').forEach(d => d.classList.remove('hidden'));
         document.querySelectorAll('.season-chevron').forEach(c => c.classList.remove('rotated'));
@@ -440,7 +524,6 @@ window.toggleEpisode = function(itemId, epId) {
     checkProgress(item);
     saveAndRender();
     
-    // OPTIMIZED: Update only the specific row instead of re-rendering whole list
     const row = document.getElementById(`ep-row-${epId}`);
     if(row) {
         row.classList.toggle('watched');
@@ -448,7 +531,7 @@ window.toggleEpisode = function(itemId, epId) {
 }
 
 window.markSeasonWatched = function(event, itemId, seasonNum, totalEpsInSeason) {
-    event.stopPropagation(); // Prevent collapsing the header when clicking the button
+    event.stopPropagation(); 
 
     const item = mediaList.find(i => i.id === itemId);
     if(!item) return;
@@ -464,14 +547,11 @@ window.markSeasonWatched = function(event, itemId, seasonNum, totalEpsInSeason) 
     checkProgress(item);
     saveAndRender();
     
-    // Re-render specifically this season to show checks
-    // (Simpler to just re-render UI here since it affects many rows)
     const sessionKey = `cineTrack_titles_${item.title}`;
     const cachedData = JSON.parse(sessionStorage.getItem(sessionKey));
     if(cachedData) setupModalLayout(item, cachedData); 
 }
 
-// Status Logic
 function checkProgress(item) {
     const watched = item.watchedEpisodes.length;
     const total = item.totalEpisodes || 0;
@@ -526,7 +606,6 @@ window.uploadBackground = function(input) {
     }
 }
 
-// Backup / Restore
 window.downloadBackup = function() {
     const backupData = {
         mediaList: mediaList,
@@ -580,7 +659,7 @@ window.restoreBackup = function(input) {
     input.value = ''; 
 }
 
-// --- INIT (RUN AT END) ---
+// --- INIT ---
 const savedBg = localStorage.getItem('cineTrackBg');
 if(savedBg) document.getElementById('bg-layer').style.backgroundImage = `url(${savedBg})`;
 
