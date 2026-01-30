@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineTrack | Personal Watchlist</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <i class="fas fa-film"></i> CineTrack
+        </div>
+        <nav>
+            <button class="nav-btn active" onclick="filterMovies('all')">All</button>
+            <button class="nav-btn" onclick="filterMovies('towatch')">To Watch</button>
+            <button class="nav-btn" onclick="filterMovies('watching')">Watching</button>
+            <button class="nav-btn" onclick="filterMovies('seen')">Seen</button>
+        </nav>
+    </header>
+
+    <main>
+        <section class="add-section">
+            <form id="movie-form">
+                <input type="text" id="title" placeholder="Enter Movie or Show Title..." required autocomplete="off">
+                
+                <select id="type">
+                    <option value="Movie">Movie</option>
+                    <option value="TV Show">TV Show</option>
+                </select>
+
+                <select id="status">
+                    <option value="towatch">To Watch</option>
+                    <option value="watching">Watching</option>
+                    <option value="seen">Seen</option>
+                </select>
+
+                <input type="number" id="rating" min="1" max="10" placeholder="Score /10">
+
+                <button type="submit"><i class="fas fa-plus"></i> Add</button>
+            </form>
+        </section>
+
+        <section class="grid-container" id="movie-list">
+            </section>
+        
+        <div id="empty-state" class="hidden">
+            <p>No content found here yet.</p>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
