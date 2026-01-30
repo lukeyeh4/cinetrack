@@ -29,7 +29,9 @@
             
             <section class="add-section">
                 <form id="movie-form">
-                    <input type="hidden" id="edit-id"> <div class="form-row">
+                    <input type="hidden" id="edit-id"> 
+                    
+                    <div class="form-row">
                         <input type="text" id="title" placeholder="Enter Title..." required autocomplete="off">
                         <select id="type" onchange="toggleTVFields()">
                             <option value="Movie">Movie</option>
@@ -53,8 +55,11 @@
                     </div>
 
                     <textarea id="notes" placeholder="Add notes..."></textarea>
-                    <button type="submit" id="submit-btn" class="add-btn"><i class="fas fa-plus"></i> Add to Library</button>
-                    <button type="button" id="cancel-edit" class="danger-btn hidden" onclick="cancelEditMode()">Cancel Edit</button>
+                    
+                    <button type="submit" id="submit-btn" class="glass-btn primary-glass">
+                        <i class="fas fa-plus"></i> Add to Library
+                    </button>
+                    <button type="button" id="cancel-edit" class="glass-btn danger-glass hidden" onclick="cancelEditMode()">Cancel Edit</button>
                 </form>
             </section>
 
@@ -62,16 +67,19 @@
                 <input type="text" id="search-bar" placeholder="Search library..." onkeyup="handleSearch()">
                 
                 <div class="filter-group">
-                    <button class="filter-btn active" onclick="filterMovies('all')">All</button>
-                    <button class="filter-btn" onclick="filterMovies('towatch')">To Watch</button>
-                    <button class="filter-btn" onclick="filterMovies('watching')">Watching</button>
-                    <button class="filter-btn" onclick="filterMovies('seen')">Seen</button>
+                    <button class="glass-btn filter-btn active" onclick="filterMovies('all')">All</button>
+                    <button class="glass-btn filter-btn" onclick="filterMovies('towatch')">To Watch</button>
+                    <button class="glass-btn filter-btn" onclick="filterMovies('watching')">Watching</button>
+                    <button class="glass-btn filter-btn" onclick="filterMovies('seen')">Seen</button>
                 </div>
 
-                <label class="toggle-container">
-                    <input type="checkbox" id="hide-seen-toggle" onchange="renderMedia()">
-                    <span>Hide Watched</span>
-                </label>
+                <div class="toggle-wrapper">
+                    <span class="toggle-label">Hide Watched</span>
+                    <label class="switch">
+                        <input type="checkbox" id="hide-seen-toggle" onchange="renderMedia()">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
             </div>
 
             <section class="grid-container" id="movie-list">
@@ -123,7 +131,7 @@
 
                 <div class="setting-item">
                     <label>Custom Background</label>
-                    <button class="upload-btn" onclick="document.getElementById('bg-upload').click()">
+                    <button class="glass-btn" onclick="document.getElementById('bg-upload').click()">
                         <i class="fas fa-upload"></i> Upload Image
                     </button>
                     <input type="file" id="bg-upload" accept="image/*" hidden onchange="uploadBackground(this)">
@@ -131,7 +139,7 @@
                 
                 <div class="setting-item">
                     <label>Reset Theme</label>
-                    <button class="danger-btn" onclick="resetTheme()">Reset to Default</button>
+                    <button class="glass-btn danger-glass" onclick="resetTheme()">Reset to Default</button>
                 </div>
             </div>
         </div>
