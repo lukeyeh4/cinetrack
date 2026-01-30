@@ -1,3 +1,5 @@
+const API_KEY = '78deb1e2'; // Your OMDb Key
+
 // Retrieve data from local storage or initialize empty array
 let mediaList = JSON.parse(localStorage.getItem('cineTrackData')) || [];
 
@@ -11,8 +13,8 @@ renderMedia('all');
 
 // --- Event Listeners ---
 
-// 1. Add New Item
-form.addEventListener('submit', (e) => {
+// 1. Add New Item (with API Fetch)
+form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const title = document.getElementById('title').value;
@@ -20,12 +22,29 @@ form.addEventListener('submit', (e) => {
     const status = document.getElementById('status').value;
     const rating = document.getElementById('rating').value;
 
+    // Default placeholder image
+    let posterUrl = 'https://via.placeholder.com/300x450?text=No+Poster'; 
+
+    // Fetch from OMDb API
+    try {
+        const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(title)}&apikey=${API_KEY}`);
+        const data = await res.json();
+        
+        // Check if API returned a valid poster
+        if (data.Poster && data.Poster !== 'N/A') {
+            posterUrl = data.Poster;
+        }
+    } catch (error) {
+        console.error("Error fetching poster:", error);
+    }
+
     const newItem = {
         id: Date.now(), // Unique ID based on timestamp
         title,
         type,
         status,
-        rating
+        rating,
+        poster: posterUrl // Store the image URL
     };
 
     mediaList.push(newItem);
@@ -37,7 +56,7 @@ form.addEventListener('submit', (e) => {
 function filterMovies(status) {
     // Update active button styling
     navButtons.forEach(btn => btn.classList.remove('active'));
-    // Find the button that was clicked (or corresponds to the status)
+    // Find the button that was clicked
     const activeBtn = Array.from(navButtons).find(b => 
         b.textContent.toLowerCase().replace(' ', '') === status || 
         (status === 'all' && b.textContent === 'All')
@@ -84,16 +103,18 @@ function renderMedia(filter) {
         if(item.status === 'watching') { statusClass = 'status-watching'; statusText = 'Watching'; }
         if(item.status === 'seen') { statusClass = 'status-seen'; statusText = 'Seen'; }
 
+        // Inject HTML
         card.innerHTML = `
-            <button class="delete-btn" onclick="deleteItem(${item.id})">
-                <i class="fas fa-trash"></i>
-            </button>
+            <img src="${item.poster}" class="card-poster" alt="${item.title}">
             <div class="card-meta">
                 <span>${item.type}</span>
                 <span class="card-badge ${statusClass}">${statusText}</span>
             </div>
             <h3>${item.title}</h3>
             ${item.rating ? `<div class="rating-display"><i class="fas fa-star"></i> ${item.rating}/10</div>` : ''}
+            <button class="delete-btn" onclick="deleteItem(${item.id})">
+                <i class="fas fa-trash"></i>
+            </button>
         `;
 
         listContainer.appendChild(card);
