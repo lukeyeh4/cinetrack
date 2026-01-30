@@ -10,29 +10,26 @@
 </head>
 <body>
 
+    <div id="bg-layer"></div>
+
     <header>
         <div class="logo">
             <i class="fas fa-film"></i> CineTrack
         </div>
         
         <nav>
-            <button class="nav-btn active" onclick="switchTab('all')">Library</button>
+            <button class="nav-btn active" onclick="switchTab('library')">Library</button>
+            <button class="nav-btn" onclick="switchTab('stats')">Stats</button>
             <button class="nav-btn" onclick="switchTab('settings')"><i class="fas fa-cog"></i> Settings</button>
         </nav>
     </header>
 
     <main>
         <div id="library-view">
-            <div class="filter-bar">
-                <button class="filter-btn active" onclick="filterMovies('all')">All</button>
-                <button class="filter-btn" onclick="filterMovies('towatch')">To Watch</button>
-                <button class="filter-btn" onclick="filterMovies('watching')">Watching</button>
-                <button class="filter-btn" onclick="filterMovies('seen')">Seen</button>
-            </div>
-
+            
             <section class="add-section">
                 <form id="movie-form">
-                    <div class="form-row">
+                    <input type="hidden" id="edit-id"> <div class="form-row">
                         <input type="text" id="title" placeholder="Enter Title..." required autocomplete="off">
                         <select id="type" onchange="toggleTVFields()">
                             <option value="Movie">Movie</option>
@@ -56,12 +53,53 @@
                     </div>
 
                     <textarea id="notes" placeholder="Add notes..."></textarea>
-                    <button type="submit" class="add-btn"><i class="fas fa-plus"></i> Add to Library</button>
+                    <button type="submit" id="submit-btn" class="add-btn"><i class="fas fa-plus"></i> Add to Library</button>
+                    <button type="button" id="cancel-edit" class="danger-btn hidden" onclick="cancelEditMode()">Cancel Edit</button>
                 </form>
             </section>
 
+            <div class="controls-bar">
+                <input type="text" id="search-bar" placeholder="Search library..." onkeyup="handleSearch()">
+                
+                <div class="filter-group">
+                    <button class="filter-btn active" onclick="filterMovies('all')">All</button>
+                    <button class="filter-btn" onclick="filterMovies('towatch')">To Watch</button>
+                    <button class="filter-btn" onclick="filterMovies('watching')">Watching</button>
+                    <button class="filter-btn" onclick="filterMovies('seen')">Seen</button>
+                </div>
+
+                <label class="toggle-container">
+                    <input type="checkbox" id="hide-seen-toggle" onchange="renderMedia()">
+                    <span>Hide Watched</span>
+                </label>
+            </div>
+
             <section class="grid-container" id="movie-list">
                 </section>
+        </div>
+
+        <div id="stats-view" class="hidden">
+            <div class="stats-container">
+                <h2>Library Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Items</h3>
+                        <p id="stat-total">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Movies</h3>
+                        <p id="stat-movies">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>TV Shows</h3>
+                        <p id="stat-shows">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Minutes (Est.)</h3>
+                        <p id="stat-mins">0</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="settings-view" class="hidden">
@@ -76,6 +114,11 @@
                 <div class="setting-item">
                     <label>Accent Color</label>
                     <input type="color" id="color-picker" value="#6c5ce7" onchange="updateAccentColor(this.value)">
+                </div>
+
+                <div class="setting-item">
+                    <label>Text Color</label>
+                    <input type="color" id="text-color-picker" value="#ffffff" onchange="updateTextColor(this.value)">
                 </div>
 
                 <div class="setting-item">
