@@ -60,7 +60,7 @@ nav { display: flex; gap: 1rem; }
 }
 .nav-btn:hover, .nav-btn.active { opacity: 1; color: var(--primary); }
 
-/* Glass Button Styles */
+/* Buttons */
 .glass-btn {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -158,15 +158,13 @@ textarea { resize: vertical; min-height: 80px; margin: 5px 0;}
     display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 0 1rem 4rem 1rem;
 }
+
+/* --- CARD STYLES --- */
 .card {
     background-color: var(--card-bg); border-radius: 16px; padding: 1.5rem;
     position: relative; border: 1px solid rgba(255,255,255,0.05);
     display: flex; flex-direction: column; align-items: center;
     transition: transform 0.2s, opacity 0.2s;
-}
-.card.dragging {
-    opacity: 0.9 !important; transform: scale(1.05) rotate(2deg);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.5); z-index: 100; border: 2px solid var(--primary);
 }
 .card-poster {
     width: 100%; height: 350px; object-fit: cover;
@@ -203,13 +201,33 @@ textarea { resize: vertical; min-height: 80px; margin: 5px 0;}
 }
 .action-btn:hover { background: var(--primary); }
 
+/* DRAG SYSTEM STYLES (NEW) */
 .drag-handle {
     position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
     color: rgba(255,255,255,0.5); cursor: grab; font-size: 1.2rem;
-    opacity: 0; transition: 0.2s;
+    opacity: 0; transition: 0.2s; z-index: 2;
 }
 .card:hover .drag-handle { opacity: 1; }
+.drag-handle:active { cursor: grabbing; }
 
+.card.dragging-original { opacity: 0; visibility: hidden; }
+
+.card-ghost {
+    position: fixed; z-index: 9999; pointer-events: none;
+    width: 260px; /* Match grid min width */
+    opacity: 0.95; transform: rotate(3deg) scale(1.05);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    background: var(--card-bg); border-radius: 16px;
+    border: 2px solid var(--primary); padding: 1.5rem;
+    display: flex; flex-direction: column; align-items: center;
+}
+.list-mode .card-ghost {
+    width: 600px; flex-direction: row; height: auto;
+    transform: rotate(1deg) scale(1.02);
+}
+body.is-dragging { user-select: none; cursor: grabbing; }
+
+/* Misc Card Info */
 .rating-display { color: #fdcb6e; font-weight: bold; margin-bottom: 8px; }
 .card-date { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; display: block; }
 .card-notes { 
@@ -218,7 +236,7 @@ textarea { resize: vertical; min-height: 80px; margin: 5px 0;}
 }
 .tv-controls-container { width: 100%; margin: 10px 0; }
 
-/* List View */
+/* List View Overrides */
 .grid-container.list-mode { grid-template-columns: 1fr; gap: 0.8rem; }
 .grid-container.list-mode .card {
     flex-direction: row; padding: 0.8rem 1.5rem; height: auto;
@@ -260,7 +278,6 @@ textarea { resize: vertical; min-height: 80px; margin: 5px 0;}
 }
 .modal-body { padding: 1.5rem; overflow-y: auto; flex-grow: 1; }
 
-/* Episode Search Bar */
 #episode-search-bar {
     width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
     background: rgba(0,0,0,0.3); color: white; margin-bottom: 1.5rem;
@@ -271,21 +288,19 @@ textarea { resize: vertical; min-height: 80px; margin: 5px 0;}
 .season-header {
     display: flex; justify-content: space-between; align-items: center;
     padding: 1rem; cursor: pointer; background: rgba(255,255,255,0.05);
-    transition: background 0.2s;
-    user-select: none;
+    transition: background 0.2s; user-select: none;
 }
 .season-header:hover { background: rgba(255,255,255,0.1); }
 .season-title-text { font-weight: bold; color: var(--text-muted); display: flex; align-items: center; gap: 10px; }
 .season-chevron { transition: transform 0.3s ease; }
-.season-chevron.rotated { transform: rotate(-90deg); } /* Points down by default, rotates left when closed */
+.season-chevron.rotated { transform: rotate(-90deg); } 
 
 .season-content { display: block; }
 .season-content.hidden { display: none; }
 
 .episode-item {
     display: flex; align-items: center; gap: 15px; padding: 10px 1rem; 
-    border-bottom: 1px solid rgba(255,255,255,0.02);
-    cursor: pointer; transition: 0.2s;
+    border-bottom: 1px solid rgba(255,255,255,0.02); cursor: pointer; transition: 0.2s;
 }
 .episode-item:hover { background: rgba(255,255,255,0.05); }
 
